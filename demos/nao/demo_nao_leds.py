@@ -26,7 +26,7 @@ class NaoLEDsDemo(SICApplication):
         super(NaoLEDsDemo, self).__init__()
         
         # Demo-specific initialization
-        self.nao_ip = "192.168.178.153"
+        self.nao_ip = "XXX"
         self.nao = None
 
         self.set_log_level(sic_logging.INFO)

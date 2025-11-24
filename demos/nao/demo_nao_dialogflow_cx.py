@@ -56,7 +56,7 @@ class NaoDialogflowCXDemo(SICApplication):
         self.dialogflow_keyfile_path = abspath(join("..", "..", "conf", "google", "google-key.json"))
         self.nao = None
         self.dialogflow_cx = None
-        self.session_id = np.random.randint(10000)
+        self.session_id = np.random.randint(10000)# test
 
         self.set_log_level(sic_logging.INFO)
         

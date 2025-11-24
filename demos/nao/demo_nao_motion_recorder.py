@@ -31,8 +31,8 @@ class NaoMotionRecorderDemo(SICApplication):
         super(NaoMotionRecorderDemo, self).__init__()
         
         # Demo-specific initialization
-        self.nao_ip = "XXX"
-        self.motion_name = "motion_recorder_demo"
+        self.nao_ip = ""
+        self.motion_name = "wave_motion"
         self.record_time = 10
         self.nao = None
         self.chain = ["LArm", "RArm"]
@@ -78,7 +78,7 @@ class NaoMotionRecorderDemo(SICApplication):
             )  # Enable stiffness for replay
             recording = NaoqiMotionRecording.load(self.motion_name)
             self.nao.motion_record.request(PlayRecording(recording))
-
+ 
             # always end with a rest, whenever you reach the end of your code
             self.nao.autonomous.request(NaoRestRequest())
             self.logger.info("Motion recorder demo completed successfully")
@@ -87,6 +87,7 @@ class NaoMotionRecorderDemo(SICApplication):
         finally:
             self.shutdown()
 
+        return recording 
 
 if __name__ == "__main__":
     # Create and run the demo

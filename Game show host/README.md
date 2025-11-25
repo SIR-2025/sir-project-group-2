@@ -1,35 +1,39 @@
 # Nao Game Show Host
 
-Een modulair quiz systeem waar de Nao robot als quiz master fungeert.
+A modular quiz system where the Nao robot acts as the quiz master.
 
-## 📦 Wat Is Dit?
+## 📦 What Is This?
 
-Dit project bestaat uit **twee onafhankelijke modules** die samenwerken:
+This project consists of **two independent modules** that work together:
+
 
 ```
 Game show host/
-├── requirements.txt   ← Installeer hier (voor beide modules)
-├── Kahoot-server/     ← Quiz server (Flask web app)
-└── nao/              ← Nao robot code (SIC framework)
+├── requirements.txt ← Install here (for both modules)
+├── Kahoot-server/ ← Quiz server (Flask web app)
+└── nao/ ← Nao robot code (SIC framework)
 ```
 
+
 ### Module 1: Kahoot-server
-- **Wat**: Een simpele Flask web server voor quiz beheer
-- **Doet**: Houdt quiz staat bij, stuurt vragen naar spelers
-- **Voor wie**: Spelers (via browser) en Nao (via API)
-- **Technologie**: Pure Python Flask, geen database
+- **What**: A simple Flask web server for quiz management  
+- **Does**: Keeps quiz state, sends questions to players  
+- **For**: Players (via browser) and Nao (via API)  
+- **Technology**: Pure Python Flask, no database  
 
 ### Module 2: nao
-- **Wat**: Nao robot applicatie die quiz presenteert
-- **Doet**: Verbindt met server, leest vragen voor, geeft resultaten
-- **Voor wie**: Nao robot
-- **Technologie**: SIC framework
+- **What**: Nao robot application that presents the quiz  
+- **Does**: Connects to server, reads questions aloud, announces results  
+- **For**: Nao robot  
+- **Technology**: SIC framework  
 
-## 🎯 Hoe Werkt Het?
+## 🎯 How Does It Work?
+
+
 
 ```
 ┌─────────────┐
-│   Spelers   │  → Browser: http://localhost:5000/join
+│   Players   │  → Browser: http://localhost:5000/join
 │  (Browser)  │
 └──────┬──────┘
        │
@@ -38,9 +42,9 @@ Game show host/
 │         Kahoot-server/                  │
 │         Flask Server (app.py)           │
 │                                         │
-│  • Houdt quiz staat bij                │
-│  • Ontvangt antwoorden van spelers     │
-│  • Biedt REST API voor Nao             │
+│  • Maintains quiz state                 │
+│  • Receives answers from players        │
+│  • Provides REST API for Nao            │
 └──────┬──────────────────────────────────┘
        │
        ↓ REST API (JSON)
@@ -48,147 +52,149 @@ Game show host/
 │         nao/                     │
 │         Nao Robot Application    │
 │                                  │
-│  • Haalt vragen op via API      │
-│  • Leest vragen voor            │
-│  • Kondigt resultaten aan       │
+│  • Fetches questions via API     │
+│  • Reads questions alou          │
+│  • Announces results             │
 └──────────────────────────────────┘
 ```
 
-## 🚀 Quick Start (3 minuten)
 
-### Stap 1: Installeer Dependencies
+## 🚀 Quick Start (3 minutes)
+
+### Step 1: Install Dependencies
 
 ```bash
-# Installeer alle dependencies (eenmalig)
+# Install all dependencies (one time)
 cd "Game show host"
 pip install -r requirements.txt
+
 ```
 
-**Wat wordt geïnstalleerd**:
-- Flask + CORS (voor server)
-- QR code generator (voor speler join)
-- Requests (voor API communicatie)
-- SIC framework (uitgecomment - alleen nodig voor echte Nao)
+**What gets installed**:
+- Flask + CORS (for server)
+- QR code generator (for players to join)
+- Requests (for API communication)
+- SIC framework (commented out — only needed for real Nao)
 
-### Stap 2: Start de Quiz Server
+### Step 2: Start de Quiz Server
 
 ```bash
 # Terminal 1: Start server
 cd "Game show host/Kahoot-server"
 python app.py
+
 ```
 
-Je ziet:
+You'll see:
 ```
 🎮 Simple Kahoot Server Starting
 Server: http://localhost:5000
 ```
 
-### Stap 3: Test de Nao Code (zonder robot)
+### Step 3: Test the Nao Code (without robot)
 
 ```bash
-# Terminal 2: Test Nao applicatie
+# Terminal 2: Test Nao application
 cd "Game show host/nao"
 python nao_kahoot.py
 ```
 
-Je ziet alle debug output:
+Debug output:
 ```
 [API] Getting status...
 [NAO SAYS] Hello everyone! Welcome to the quiz!
 ```
 
-✅ **Klaar!** De modules werken samen.
+✅ **Done!** The modules work together.
+### Step 4: Add Players (optional)
 
-### Stap 4: Voeg Spelers Toe (optioneel)
-
-Open in je browser:
+Open in your browser:
 - `http://localhost:5000/join`
 
-## 📚 Documentatie Per Module
+## 📚 Documentation Per Module
 
 ### Kahoot-server Module
 
-**Lees**: `Kahoot-server/README.md`
+**Read**: `Kahoot-server/README.md`
 
-Bevat:
-- Gedetailleerde API documentatie
-- Hoe vragen aan te passen (`quiz_data.py`)
-- Uitleg van alle endpoints
-- Hoe uit te breiden
+Contains:
+- Detailed API documentation
+- How to adjust questions (`quiz_data.py`)
+- Explanation of all endpoints
+- How to extend functionality
 
 ### Nao Module
 
-**Lees**: `nao/QUICKSTART.md`
+**Read**: `nao/QUICKSTART.md`
 
-Bevat:
-- Stap-voor-stap uitleg
-- Test mode (geen Nao nodig)
-- Hoe te verbinden met echte Nao
-- Code voorbeelden
+Contains:
+- Step-by-step instructions
+- Test mode (no Nao required)
+- How to connect to a real Nao
+- Code examples
 
 ## 🔧 Configuration
 
-### Server Configuratie
+### Server Configuration
 In `Kahoot-server/quiz_data.py`:
 ```python
 QUIZ_TITLE = "Nao's Fun Quiz"
-QUESTIONS = [...]  # Pas vragen hier aan
+QUESTIONS = [...]  # Edit questions here
 ```
 
-### Nao Configuratie
-In `nao/nao_kahoot.py`:
-```python
-SERVER_URL = "http://localhost:5000"  # Server adres
-NAO_IP = "10.0.0.137"                  # Nao IP adres
-TEST_API_ONLY = True                   # True = test zonder Nao
-```
+### Nao Configuration
+In \`nao/nao_kahoot.py\`:
+\`\`\`python
+SERVER_URL = "http://localhost:5000"  # Server address
+NAO_IP = "10.0.0.137"                  # Nao IP address
+TEST_API_ONLY = True                   # True = test without Nao
+\`\`\`
 
-### SIC Framework (Echte Nao)
-Als je met een echte Nao wilt werken:
-1. Edit `requirements.txt`
-2. Uncomment de regel: `# social-interaction-cloud`
-3. Run: `pip install -r requirements.txt`
+### SIC Framework (Real Nao)
+If you want to work with a real Nao:
+1. Edit \`requirements.txt\`
+2. Uncomment the line: \`# social-interaction-cloud\`
+3. Run: \`pip install -r requirements.txt\`
 
-## 💡 Waarom Modulair?
+## 💡 Why Modular?
 
-### ✅ Voordelen
+### ✅ Advantages
 
-1. **Onafhankelijk testen**
-   - Test server zonder Nao
-   - Test Nao code zonder echte robot
+1. **Independent testing**
+   - Test server without Nao
+   - Test Nao code without the real robot
 
-2. **Makkelijk uitbreiden**
-   - Voeg server features toe zonder Nao code aan te passen
-   - Voeg Nao gedrag toe zonder server te wijzigen
+2. **Easy to expand**
+   - Add server features without touching Nao code
+   - Add Nao behavior without modifying the server
 
-3. **Duidelijke verantwoordelijkheden**
-   - Server: Quiz logica en data
-   - Nao: Presentatie en interactie
+3. **Clear responsibilities**
+   - Server: Quiz logic and data
+   - Nao: Presentation and interaction
 
-4. **Leren en begrijpen**
-   - Elke module is klein en overzichtelijk
-   - Duidelijke API grenzen
+4. **Learn and understand**
+   - Every module is small and readable
+   - Clear API boundaries
 
-## 📖 Code Structuur Details
+## 📖 Code Structure Details
 
 ### Project Root
 ```
 Game show host/
-├── requirements.txt    # Centrale dependencies (gebruik deze!)
-├── README.md          # Dit bestand
-├── Kahoot-server/     # Server module
-└── nao/              # Nao module
+├── requirements.txt    # Central dependencies (use this!)
+├── README.md           # This file
+├── Kahoot-server/      # Server module
+└── nao/                # Nao module
 ```
 
 ### Kahoot-server Files
 ```
 Kahoot-server/
-├── app.py              # Flask server met alle routes
-├── quiz_data.py        # Vragen (HIER EDIT JE)
-├── templates/          # HTML voor spelers
+├── app.py              # Flask server with all routes
+├── quiz_data.py        # Questions (EDIT HERE)
+├── templates/          # HTML for players
 │   ├── admin.html      # Admin dashboard
-│   ├── join.html       # Speler join pagina
+│   ├── join.html       # Player join page
 │   └── play.html       # Quiz interface
 └── static/
     └── css/
@@ -199,155 +205,155 @@ Kahoot-server/
 ```
 nao/
 ├── nao_kahoot.py       # Main Nao application
-└── QUICKSTART.md       # Gedetailleerde uitleg
+└── QUICKSTART.md       # Detailed explanation
 ```
 
-## 🎓 Gebruik Scenario's
+## 🎓 Usage Scenarios
 
-### Scenario 1: Ontwikkelen en Testen
+### Scenario 1: Development and Testing
 ```bash
-# Eenmalig: Installeer dependencies
+# One-time: install dependencies
 cd "Game show host"
 pip install -r requirements.txt
 
-# Terminal 1: Start server
+# Terminal 1: start server
 cd Kahoot-server
 python app.py
 
-# Terminal 2: Test Nao (zonder robot)
+# Terminal 2: test Nao (without robot)
 cd ../nao
 python nao_kahoot.py
 ```
 
-### Scenario 2: Demonstratie met Echte Nao
+### Scenario 2: Demo with Real Nao
 ```bash
-# Terminal 1: Start server
+# Terminal 1: start server
 cd Kahoot-server
 python app.py
 
-# Terminal 2: Verbind Nao
+# Terminal 2: connect Nao
 cd ../nao
 # Edit nao_kahoot.py: TEST_API_ONLY = False
 python nao_kahoot.py
 ```
 
-### Scenario 3: Spelers toevoegen
-1. Start server (zoals boven)
-2. Spelers: ga naar `http://localhost:5000/join`
-3. Admin view: ga naar `http://localhost:5000/admin`
+### Scenario 3: Add Players
+1. Start server (as above)
+2. Players: go to `http://localhost:5000/join`
+3. Admin view: go to `http://localhost:5000/admin`
 
 ## 🧪 Test Checklist
 
-Volg deze stappen om alles te testen:
+Follow these steps to test everything:
 
-- [ ] Installeer dependencies: `pip install -r requirements.txt`
-- [ ] Start server → zie "Server Starting" bericht
-- [ ] Open `http://localhost:5000/admin` → zie admin dashboard
-- [ ] Open `http://localhost:5000/join` → voeg speler toe
-- [ ] Run `nao/nao_kahoot.py` → zie debug output
-- [ ] Check dat Nao vragen leest
-- [ ] Check dat spelers kunnen antwoorden
+- [ ] Install dependencies: `pip install -r requirements.txt`
+- [ ] Start server → see "Server Starting" message
+- [ ] Open `http://localhost:5000/admin` → admin dashboard appears
+- [ ] Open `http://localhost:5000/join` → add a player
+- [ ] Run `nao/nao_kahoot.py` → see debug output
+- [ ] Check that Nao reads questions
+- [ ] Check that players can answer
 
-## 🔨 Uitbreiden
+## 🔨 Extending
 
-### Nieuwe Vragen Toevoegen
+### Add New Questions
 1. Edit `Kahoot-server/quiz_data.py`
-2. Voeg vraag toe aan `QUESTIONS` lijst
+2. Add a question to the `QUESTIONS` list
 3. Restart server
 
-### Nao Gedrag Aanpassen
+### Modify Nao Behavior
 1. Edit `nao/nao_kahoot.py`
-2. Pas functies in `NaoQuizMaster` class aan
-3. Run opnieuw
+2. Modify functions in the `NaoQuizMaster` class
+3. Run again
 
-### Nieuwe API Endpoints
+### Add New API Endpoints
 1. Edit `Kahoot-server/app.py`
-2. Voeg route toe
-3. Update `nao/nao_kahoot.py` om endpoint te gebruiken
+2. Add a new route
+3. Update `nao/nao_kahoot.py` to use the endpoint
 
-## 🐛 Veelvoorkomende Problemen
+## 🐛 Common Issues
 
-### Server start niet
+### Server won't start
 ```bash
-# Check of poort 5000 al in gebruik is
+# Check if port 5000 is already in use
 netstat -an | findstr :5000
 
-# Of gebruik andere poort in app.py:
+# Or use a different port in app.py:
 app.run(port=5001)
 ```
 
-### Nao kan niet verbinden
-1. Check of server draait
+### Nao can't connect
+1. Check if the server is running
 2. Check `SERVER_URL` in `nao_kahoot.py`
-3. Probeer eerst `TEST_API_ONLY = True`
+3. Try `TEST_API_ONLY = True` first
 
-### Geen spelers zichtbaar
-1. Check of je `/join` pagina hebt bezocht
-2. Check of je naam hebt ingevoerd
-3. Check browser console voor errors
+### No players visible
+1. Check if you visited the `/join` page
+2. Check if you entered a name
+3. Check browser console for errors
 
-### Dependencies installeren lukt niet
+### Dependencies won't install
 ```bash
-# Probeer apart installeren
+# Try installing separately
 pip install flask flask-cors qrcode[pil] requests
 
-# Voor Nao (alleen als nodig):
+# For Nao (only if needed):
 pip install social-interaction-cloud
 ```
 
 ## 📝 Best Practices
 
-### Bij Ontwikkelen
-- ✅ Test altijd eerst met `TEST_API_ONLY = True`
-- ✅ Gebruik print statements om te debuggen
-- ✅ Test met 1-2 spelers eerst
-- ✅ Commit vaak (kleine changes)
+### During Development
+- ✅ Always test first with `TEST_API_ONLY = True`
+- ✅ Use print statements to debug
+- ✅ Test with 1–2 players first
+- ✅ Commit often (small changes)
 
-### Bij Presenteren
-- ✅ Test complete flow vooraf
-- ✅ Check Nao batterij
-- ✅ Check WiFi verbinding
-- ✅ Heb backup plan (TEST_API_ONLY mode)
+### During Presentation
+- ✅ Test full flow beforehand
+- ✅ Check Nao’s battery
+- ✅ Check WiFi connection
+- ✅ Have a backup plan (TEST_API_ONLY mode)
 
-## 🎯 Volgende Stappen
+## 🎯 Next Steps
 
-1. **Leer de basis**
-   - Lees `Kahoot-server/README.md`
-   - Lees `nao/QUICKSTART.md`
-   - Run alles in test mode
+1. **Learn the basics**
+   - Read `Kahoot-server/README.md`
+   - Read `nao/QUICKSTART.md`
+   - Run everything in test mode
 
-2. **Test met spelers**
-   - Voeg jezelf toe als speler
-   - Zie de complete flow
-   - Begrijp de interactie
+2. **Test with players**
+   - Add yourself as a player
+   - Observe the full flow
+   - Understand the interaction
 
-3. **Verbind Nao**
-   - Zet `TEST_API_ONLY = False`
-   - Test met echte robot
-   - Voeg grappen/gestures toe
+3. **Connect Nao**
+   - Set `TEST_API_ONLY = False`
+   - Test with the real robot
+   - Add jokes/gestures
 
-4. **Breid uit**
-   - Meer vragen
-   - Nao gestures bij juiste/foute antwoorden
-   - LED effecten
-   - Scoring systeem
+4. **Expand**
+   - More questions
+   - Nao gestures for correct/incorrect answers
+   - LED effects
+   - Scoring system
 
-## 📞 Hulp Nodig?
+## 📞 Need Help?
 
 ### Error Messages
-- Check `[API]` prints → server communicatie probleem
-- Check `[NAO]` prints → robot probleem
-- Check browser console → speler interface probleem
+- Check `[API]` prints → server communication issue
+- Check `[NAO]` prints → robot issue
+- Check browser console → player interface issue
 
-### Vragen Aanpassen
+### Adjust Questions
 - Edit `Kahoot-server/quiz_data.py`
-- Volg bestaand formaat exact
+- Follow existing format exactly
 
-### Meer Features
-- Voeg klein toe, test, dan volgende
-- Gebruik print statements overal
-- Houd functies klein (<20 regels)
+### More Features
+- Add small changes, test, then add more
+- Use print statements everywhere
+- Keep functions small (<20 lines)
 
 ---
 
-**Veel succes met je Nao quiz master!** 🤖🎮
+**Good luck with your Nao quiz master!** 🤖🎮

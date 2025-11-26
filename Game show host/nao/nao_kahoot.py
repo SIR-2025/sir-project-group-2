@@ -1,5 +1,5 @@
 """
-Nao Kahoot Quiz Master Application
+Nao Kahoot Master Application
 ===================================
 
 Simple and modular Nao quiz application using SIC framework.

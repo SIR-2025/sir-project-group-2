@@ -315,6 +315,16 @@ def api_player_status():
 # API ROUTES - Nao Robot Control
 # ============================================================================
 
+@app.route('/api/players', methods=['GET'])
+def api_get_players():
+    """
+    API endpoint for Nao to get list of players.
+    """
+    player_names = [quiz_state["players"].get(player_id, {}).get("name", "Unknown") for player_id in quiz_state["players"].keys()]
+    return jsonify(player_names)
+
+
+
 @app.route('/api/status', methods=['GET'])
 def api_status():
     """

@@ -19,7 +19,11 @@ import audioop
 import speech_recognition as sr
 
 from openai import OpenAI
-from demo_nao_motion_recorder import NaoqiMotionRecording
+from sic_framework.devices.common_naoqi.naoqi_autonomous import NaoRestRequest
+from sic_framework.devices.common_naoqi.naoqi_motion import (
+    NaoPostureRequest,
+    NaoqiAnimationRequest,
+)
 
 llm_client = OpenAI()
 
@@ -28,7 +32,7 @@ llm_client = OpenAI()
 # ============================================================================
 
 SERVER_URL = "http://localhost:5000"  # Kahoot server address
-NAO_IP = "10.0.0.151"  # Your Nao's IP address
+NAO_IP = "10.0.0.137"  # Your Nao's IP address
 TEST_API_ONLY = False  # Set to False to use real Nao
 
 # Timing (in seconds)

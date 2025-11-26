@@ -34,15 +34,21 @@ class NaoQuizMaster():
     def walk(self, straight, side, curve):
         self.nao.motion.request(NaoqiMoveToRequest(x=straight, y=side, theta=curve))
 
+    def hello_walk(self):
+        self.nao.tts.request(NaoqiTextToSpeechRequest("Hello everyone"), block=False)
+        self.nao.motion.request(NaoqiAnimationRequest("animations/Stand/Gestures/Hey_6"), block=False)
+
     def shake_head(self):
         self.nao.tts.request(NaoqiTextToSpeechRequest("nooo you are wrong"), block=False)
         self.nao.motion.request(NaoqiAnimationRequest("animations/Stand/Gestures/No_3"))
-	    # self.nao.tts.request(NaoqiAnimationRequest(animations/Stand/Gestures/No_3))
 
     def run_quiz(self):
         self.stand_up()
         time.sleep(3)
         self.shake_head()
+        time.sleep(4)
+        self.hello()
+
         time.sleep(5)
         #self.sit_down()
 

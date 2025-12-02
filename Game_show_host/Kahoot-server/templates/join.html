@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join Quiz - {{ quiz_title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="join-page">
+    
+    <!-- Main Container -->
+    <div class="container-center">
+        
+        <!-- Join Card -->
+        <div class="join-card">
+            
+            <!-- Header -->
+            <div class="join-header">
+                <h1>🎮 {{ quiz_title }}</h1>
+                <p class="subtitle">Enter your name to join</p>
+            </div>
+
+            <!-- Join Form -->
+            <form id="join-form" onsubmit="joinQuiz(event)">
+                <div class="form-group">
+                    <label for="player-name">Your Name</label>
+                    <input 
+                        type="text" 
+                        id="player-name" 
+                        name="name" 
+                        placeholder="Enter your name..."
+                        required
+                        autocomplete="off"
+                        maxlength="30"
+                    >
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-large">
+                    ▶️ Join Quiz
+                </button>
+            </form>
+
+            <!-- Status Message -->
+            <div id="status-message" class="status-message hidden">
+                <p></p>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // ========================================
+        // Configuration
+        // ========================================
+        
+        const API_BASE = window.location.origin;
+
+        // ========================================
+        // Join Quiz Function
+        // ========================================
+        
+        async function joinQuiz(event) {
+            event.preventDefault();
+            
+            // Get player name from form
+            const nameInput = document.getElementById('player-name');
+            const playerName = nameInput.value.trim();
+            
+            if (!playerName) {
+                showMessage('Please enter your name', 'error');
+                return;
+            }
+            
+            // Disable form while processing
+            const form = document.getElementById('join-form');
+            form.classList.add('disabled');
+            
+            try {
+                // Send join request to API
+                const response = await fetch(`${API_BASE}/api/player/join`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name: playerName })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to join quiz');
+                }
+                
+                const data = await response.json();
+                
+                // Show success message
+                showMessage(`Welcome, ${data.player_name}! Redirecting...`, 'success');
+                
+                // Redirect to play page after short delay
+                setTimeout(() => {
+                    window.location.href = `${API_BASE}/play?player_id=${data.player_id}`;
+                }, 1000);
+                
+            } catch (error) {
+                console.error('Error joining quiz:', error);
+                showMessage('Error joining quiz. Please try again.', 'error');
+                form.classList.remove('disabled');
+            }
+        }
+
+        // ========================================
+        // UI Helper Functions
+        // ========================================
+        
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('status-message');
+            const messagePara = messageDiv.querySelector('p');
+            
+            messagePara.textContent = text;
+            messageDiv.className = `status-message ${type}`;
+            messageDiv.classList.remove('hidden');
+        }
+
+        // ========================================
+        // Initialization
+        // ========================================
+        
+        // Focus on name input when page loads
+        window.addEventListener('load', () => {
+            document.getElementById('player-name').focus();
+        });
+        
+        console.log('Join page initialized');
+    </script>
+
+</body>
+</html>
+

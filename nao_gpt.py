@@ -1,150 +1,141 @@
 """
-Simple NAO + GPT Demo
-
-NAO robot integrated with OpenAI GPT to generate funny responses and speak them.
-NAO listens to your speech using Whisper, sends it to ChatGPT, and speaks the response.
-
-SETUP INSTRUCTIONS:
-1. Install required services:
-   pip install --upgrade social-interaction-cloud[openai-gpt]
-   pip install --upgrade social-interaction-cloud[whisper-speech-to-text]
-   
-2. Create a .env file in the workspace root with your OpenAI API key:
-   OPENAI_API_KEY=your_api_key_here
-   
-3. Start the services (in SEPARATE terminals):
-   Terminal 1: run-gpt
-   Terminal 2: run-whisper
-   
-4. Run this script:
-   python nao_gpt.py
+NAO + GPT Quiz Host Demo
+Includes:
+- Volume Check ("Are we all ready?")
+- GPT conversation support
+- Microphone loudness measurement
 """
 
-from sic_framework.core.sic_application import SICApplication
-from sic_framework.devices import Nao
-from sic_framework.devices.nao import NaoqiTextToSpeechRequest
-from sic_framework.services.openai_gpt.gpt import GPT, GPTConf, GPTRequest
-from sic_framework.services.openai_whisper_stt.whisper_stt import (
-    SICWhisper,
-    WhisperConf,
-    GetTranscript
-)
-from os import environ
-from dotenv import load_dotenv
+import time
+from naoqi import ALProxy
+from openai import OpenAI
 
-class SimpleNaoGPT(SICApplication):
-    """
-    Simple demo: NAO listens to your speech, sends it to ChatGPT,
-    and speaks the funny response back to you.
-    """
-    
-    def __init__(self):
-        super(SimpleNaoGPT, self).__init__()
-        
-        # Configuration
-        self.nao_ip = "10.0.0.137"  # Your NAO's IP
-        self.context = []  # Conversation memory
-        
-        self.setup()
-    
-    def setup(self):
-        """Initialize NAO and GPT."""
-        # Initialize NAO
-        self.nao = Nao(ip=self.nao_ip, dev_test=False)
-        
-        # Load OpenAI API key from .env file in workspace root
-        # The .env file should contain: OPENAI_API_KEY=your_api_key_here
-        load_dotenv()  # Loads from current directory or searches parent directories
-        
-        # Check if API key exists
-        if "OPENAI_API_KEY" not in environ:
-            raise ValueError(
-                "OPENAI_API_KEY not found in environment variables.\n"
-                "Please create a .env file in the workspace root with:\n"
-                "OPENAI_API_KEY=your_api_key_here"
-            )
-        
-        # Configure GPT as a comedian
-        conf = GPTConf(
-            openai_key=environ["OPENAI_API_KEY"],
-            system_message="You are a funny stand-up comedian robot. Make short, witty jokes.",
-            model="gpt-4o-mini",
-            temp=0.8,  # Creative
-            max_tokens=50  # Short responses
-        )
-        
-        self.gpt = GPT(conf=conf)
-        
-        # Setup Whisper Speech-to-Text for listening
-        # Uses the same OpenAI API key as GPT - simple and effective!
-        whisper_conf = WhisperConf(
-            openai_key=environ["OPENAI_API_KEY"]  # Same key as GPT
-        )
-        
-        # Connect Whisper to NAO's microphone
-        self.stt = SICWhisper(
-            input_source=self.nao.mic,
-            conf=whisper_conf
-        )
-        
-        print("Whisper speech-to-text initialized and ready to listen!")
-    
-    def listen_to_user(self):
-        """
-        Listen to user speech and return text transcript.
-        
-        Returns:
-            str: The text transcript of what the user said
-        """
-        print("🎤 Listening... (speak now)")
-        
-        # Request transcript from NAO's microphone
-        # timeout: Maximum time to wait for speech to start (seconds)
-        # phrase_time_limit: Maximum duration of the phrase (seconds)
-        transcript_msg = self.stt.request(GetTranscript(
-            timeout=10,  # Wait up to 10 seconds for user to start speaking
-            phrase_time_limit=8  # Stop recording after 8 seconds of speech
-        ))
-        
-        return transcript_msg.transcript
-    
-    def run(self):
-        """Main loop."""
+
+class SimpleNaoGPT:
+    def __init__(self, robot_ip="127.0.0.1", model="gpt-4o-mini"):
+        # --- Robot speech setup ---
+        self.tts = ALProxy("ALTextToSpeech", robot_ip, 9559)
+        self.tts.setVolume(0.9)
+
+        # --- Microphone setup ---
+        self.recognizer = sr.Recognizer()
+        self.microphone = sr.Microphone()
+
+        # --- GPT Client ---
+        self.client = OpenAI()
+        self.model = model
+
+        # Volume threshold (tweak this for your room)
+        self.VOLUME_THRESHOLD = 3500   # Lower number = easier to pass
+        self.READY_TIMEOUT = 4         # Seconds to listen
+
+    # -----------------------------------------------------------------
+    # LISTEN AND GET RAW AUDIO + LOUDNESS
+    # -----------------------------------------------------------------
+    def listen_for_volume(self, timeout=None):
+        with self.microphone as source:
+            print("Listening for loudness...")
+            audio = self.recognizer.listen(source, timeout=timeout)
+
+        # Convert audio to raw data
+        raw = audio.get_wav_data()
+
+        # Measure RMS loudness
+        rms = audioop.rms(raw, 2)  # 16-bit depth → width=2
+        print("Loudness RMS =", rms)
+        return rms
+
+    # -----------------------------------------------------------------
+    # FULL SPEECH-TO-TEXT (GPT Whisper)
+    # -----------------------------------------------------------------
+    def listen_and_transcribe(self):
+        with self.microphone as source:
+            print("Listening for speech...")
+            audio = self.recognizer.listen(source)
+
+        audio_bytes = audio.get_wav_data()
+
         try:
-            # NAO greets
-            self.nao.tts.request(NaoqiTextToSpeechRequest("Hello! I'm a comedy bot!"))
-            
-            # 5 conversation turns - NAO listens, GPT responds, NAO speaks
-            for i in range(1):
-                # Listen to user speech via NAO's microphone
-                user_input = self.listen_to_user()
-                print("You said: " + user_input)
-                
-                # Send to ChatGPT
-                reply = self.gpt.request(GPTRequest(
-                    input=user_input,
-                    context_messages=self.context
-                ))
-                
-                # NAO speaks the response
-                response = reply.response
-                print("NAO: " + response)
-                self.nao.tts.request(NaoqiTextToSpeechRequest(response))
-                
-                # Add to conversation history for context
-                self.context.append(user_input)
-            
-            self.shutdown()
-            
-        except KeyboardInterrupt:
-            print("\nDemo interrupted by user")
-            self.shutdown()
+            response = self.client.audio.transcriptions.create(
+                model="gpt-4o-mini-tts",
+                file=("speech.wav", audio_bytes)
+            )
+            text = response["text"]
+            return text
         except Exception as e:
-            print("Error: " + str(e))
-            import traceback
-            traceback.print_exc()
-            self.shutdown()
+            print("Transcription error:", e)
+            return ""
+
+    # -----------------------------------------------------------------
+    # SEND MESSAGE TO GPT
+    # -----------------------------------------------------------------
+    def ask_gpt(self, prompt):
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            answer = response.choices[0].message["content"]
+            return answer
+        except Exception as e:
+            print("GPT error:", e)
+            return "Sorry, I had trouble thinking just now."
+
+    # -----------------------------------------------------------------
+    # ROBOT SPEECH
+    # -----------------------------------------------------------------
+    def robot_speak(self, text):
+        print("Robot:", text)
+        self.tts.say(text)
+
+    # -----------------------------------------------------------------
+    # QUIZ READINESS CHECK
+    # -----------------------------------------------------------------
+    def volume_check(self):
+        self.robot_speak("Are we all ready? Make some noise!")
+
+        time.sleep(1)
+
+        # Measure crowd loudness
+        loudness = self.listen_for_volume(timeout=self.READY_TIMEOUT)
+
+        if loudness < self.VOLUME_THRESHOLD:
+            # Not loud enough
+            self.robot_speak("I can't hear you! A little louder please!")
+            return False
+        else:
+            # Good loudness
+            self.robot_speak("Great! You sound ready. Let's begin the quiz!")
+            return True
+
+    # -----------------------------------------------------------------
+    # MAIN LOOP
+    # -----------------------------------------------------------------
+    def run(self):
+        # First, check if the audience is ready
+        ready = False
+        while not ready:
+            ready = self.volume_check()
+
+        # After volume check → continue with normal GPT chat
+        self.robot_speak("Feel free to talk to me or ask questions!")
+
+        while True:
+            try:
+                text = self.listen_and_transcribe()
+                if not text:
+                    continue
+
+                print("User said:", text)
+
+                reply = self.ask_gpt(text)
+                self.robot_speak(reply)
+
+            except Exception as e:
+                print("Error:", e)
+                continue
+
 
 if __name__ == "__main__":
-    demo = SimpleNaoGPT()
-    demo.run()
+    bot = SimpleNaoGPT()
+    bot.run()

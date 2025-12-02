@@ -1,9 +1,7 @@
 /**
  * Kahoot Server Styles
  * ====================
- * 
- * Modern, clean styling for quiz interface.
- * Responsive design for mobile and desktop.
+ * Kahoot-inspired styling with vibrant colors.
  */
 
 /* ============================================================================
@@ -17,36 +15,36 @@
 }
 
 :root {
-    /* Color Palette */
-    --primary-color: #4A90E2;
-    --primary-dark: #357ABD;
-    --success-color: #5CB85C;
-    --success-dark: #4CAE4C;
-    --danger-color: #E74C3C;
-    --danger-dark: #C0392B;
-    --warning-color: #F39C12;
-    --info-color: #3498DB;
+    /* Kahoot Colors */
+    --kahoot-red: #E21B3C;
+    --kahoot-blue: #1368CE;
+    --kahoot-yellow: #D89E00;
+    --kahoot-green: #26890C;
+    --kahoot-purple: #46178F;
+    
+    /* UI Colors */
+    --primary-color: #46178F;
+    --primary-dark: #3B1378;
+    --success-color: #26890C;
+    --danger-color: #E21B3C;
     
     /* Neutral Colors */
     --bg-color: #F5F7FA;
+    --bg-dark: #1a1a2e;
     --text-color: #2C3E50;
     --text-light: #7F8C8D;
     --border-color: #DDE4E8;
     --white: #FFFFFF;
     
-    /* Shadows */
+    /* Shadows & Spacing */
     --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
     --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.15);
     --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.2);
-    
-    /* Spacing */
     --spacing-xs: 0.5rem;
     --spacing-sm: 1rem;
     --spacing-md: 1.5rem;
     --spacing-lg: 2rem;
     --spacing-xl: 3rem;
-    
-    /* Border Radius */
     --radius-sm: 4px;
     --radius-md: 8px;
     --radius-lg: 12px;
@@ -61,6 +59,8 @@ body {
     min-height: 100vh;
 }
 
+.hidden { display: none !important; }
+
 /* ============================================================================
    HEADER
    ============================================================================ */
@@ -73,24 +73,11 @@ body {
     box-shadow: var(--shadow-md);
 }
 
-.header h1 {
-    font-size: 2.5rem;
-    margin-bottom: var(--spacing-xs);
-}
-
-.header .subtitle {
-    font-size: 1.1rem;
-    opacity: 0.9;
-}
-
-.header .player-name {
-    font-size: 1rem;
-    margin-top: var(--spacing-xs);
-    opacity: 0.9;
-}
+.header h1 { font-size: 2rem; margin-bottom: var(--spacing-xs); }
+.header .player-name, .header .score-display { font-size: 1rem; opacity: 0.9; }
 
 /* ============================================================================
-   CONTAINERS
+   CONTAINERS & PANELS
    ============================================================================ */
 
 .container {
@@ -98,18 +85,6 @@ body {
     margin: 0 auto;
     padding: var(--spacing-lg);
 }
-
-.container-center {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    padding: var(--spacing-md);
-}
-
-/* ============================================================================
-   PANELS
-   ============================================================================ */
 
 .panel {
     background: var(--white);
@@ -119,19 +94,296 @@ body {
     box-shadow: var(--shadow-sm);
 }
 
-.panel h2 {
-    margin-bottom: var(--spacing-md);
-    color: var(--text-color);
-    font-size: 1.5rem;
+.panel h2 { margin-bottom: var(--spacing-md); font-size: 1.5rem; }
+
+.state-panel { max-width: 800px; margin: 0 auto; }
+
+.waiting-content, .finished-content {
+    text-align: center;
+    padding: var(--spacing-xl);
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
 }
 
-.panel p {
-    color: var(--text-light);
-    margin-bottom: var(--spacing-sm);
+.waiting-content h2, .finished-content h2 {
+    font-size: 2rem;
+    margin-bottom: var(--spacing-md);
+    color: var(--primary-color);
+}
+
+/* Spinner */
+.spinner {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto var(--spacing-lg);
+    border: 5px solid var(--border-color);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============================================================================
+   QUIZ DISPLAY (Host Screen)
+   ============================================================================ */
+
+.quiz-display {
+    background: var(--bg-dark);
+    color: var(--white);
+    min-height: 100vh;
+}
+
+.quiz-screen {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-lg);
+}
+
+/* Waiting Display */
+.waiting-display {
+    text-align: center;
+}
+
+.waiting-display h1 {
+    font-size: 4rem;
+    margin-bottom: var(--spacing-xl);
+}
+
+.player-counter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: var(--spacing-lg);
+}
+
+.player-counter span:first-child {
+    font-size: 8rem;
+    font-weight: bold;
+    color: var(--kahoot-purple);
+    text-shadow: 0 4px 20px rgba(70, 23, 143, 0.5);
+}
+
+.counter-label { font-size: 1.5rem; opacity: 0.8; }
+.waiting-text { font-size: 1.2rem; opacity: 0.6; }
+
+/* Question Display */
+.question-display {
+    text-align: center;
+    width: 100%;
+    max-width: 1000px;
+}
+
+.question-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.2);
+    padding: 0.5rem 1.5rem;
+    border-radius: 20px;
+    font-size: 1.2rem;
+    margin-bottom: var(--spacing-lg);
+}
+
+.big-question {
+    font-size: 3rem;
+    font-weight: bold;
+    line-height: 1.3;
+    margin-bottom: var(--spacing-xl);
 }
 
 /* ============================================================================
-   STATUS GRID (Admin Dashboard)
+   KAHOOT OPTIONS (Host Screen)
+   ============================================================================ */
+
+.kahoot-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+    width: 100%;
+    max-width: 1000px;
+    margin-top: var(--spacing-lg);
+}
+
+.kahoot-option {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    min-height: 100px;
+}
+
+.option-shape {
+    font-size: 2.5rem;
+    margin-right: var(--spacing-md);
+    opacity: 0.8;
+}
+
+.option-text {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+.answer-counter {
+    margin-top: var(--spacing-xl);
+    font-size: 1.5rem;
+    opacity: 0.8;
+}
+
+/* ============================================================================
+   KAHOOT ANSWER BUTTONS (Player Phone)
+   ============================================================================ */
+
+.kahoot-answer-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+    height: 60vh;
+}
+
+.kahoot-btn {
+    border: none;
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s, opacity 0.2s;
+}
+
+.kahoot-btn .btn-shape {
+    font-size: 4rem;
+    color: white;
+}
+
+.kahoot-btn:hover { transform: scale(1.02); }
+.kahoot-btn:active { transform: scale(0.98); }
+.kahoot-btn.selected { opacity: 0.7; border: 4px solid white; }
+.kahoot-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ============================================================================
+   BAR CHART (Results)
+   ============================================================================ */
+
+.results-display {
+    text-align: center;
+    width: 100%;
+    max-width: 800px;
+}
+
+.results-display h2 {
+    font-size: 2.5rem;
+    margin-bottom: var(--spacing-xl);
+}
+
+.bar-chart {
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-end;
+    height: 400px;
+    padding: var(--spacing-lg);
+    background: rgba(255,255,255,0.1);
+    border-radius: var(--radius-lg);
+}
+
+.bar-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 20%;
+}
+
+.bar-count {
+    font-size: 2rem;
+    font-weight: bold;
+    margin-bottom: var(--spacing-sm);
+}
+
+.bar {
+    width: 80%;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: var(--spacing-sm);
+    transition: height 0.5s ease;
+}
+
+.correct-mark {
+    font-size: 2rem;
+    color: white;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.bar-shape {
+    font-size: 2.5rem;
+    margin-top: var(--spacing-md);
+}
+
+/* ============================================================================
+   LEADERBOARD
+   ============================================================================ */
+
+.leaderboard-display {
+    width: 100%;
+    max-width: 700px;
+}
+
+.leaderboard-display h2 {
+    font-size: 2.5rem;
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+}
+
+.leaderboard-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.leaderboard-entry {
+    display: flex;
+    align-items: center;
+    background: rgba(255,255,255,0.1);
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    font-size: 1.3rem;
+}
+
+.leaderboard-entry.top-three {
+    background: linear-gradient(135deg, var(--kahoot-purple) 0%, #6B3FA0 100%);
+}
+
+.leaderboard-entry .rank {
+    font-size: 1.8rem;
+    font-weight: bold;
+    width: 60px;
+}
+
+.leaderboard-entry .name {
+    flex: 1;
+    font-weight: 600;
+}
+
+.leaderboard-entry .change {
+    width: 60px;
+    text-align: center;
+}
+
+.leaderboard-entry .change.up { color: #4CAF50; }
+.leaderboard-entry .change.down { color: #F44336; }
+
+.leaderboard-entry .score {
+    font-size: 1.5rem;
+    font-weight: bold;
+    width: 100px;
+    text-align: right;
+}
+
+/* ============================================================================
+   ADMIN STYLES
    ============================================================================ */
 
 .status-grid {
@@ -148,78 +400,13 @@ body {
     border-radius: var(--radius-md);
 }
 
-.status-label {
-    font-size: 0.9rem;
-    color: var(--text-light);
-    margin-bottom: var(--spacing-xs);
-}
+.status-label { font-size: 0.9rem; color: var(--text-light); margin-bottom: var(--spacing-xs); }
+.status-value { font-size: 1.8rem; font-weight: bold; color: var(--primary-color); }
 
-.status-value {
-    font-size: 1.8rem;
-    font-weight: bold;
-    color: var(--primary-color);
-}
-
-/* ============================================================================
-   PLAYER LIST
-   ============================================================================ */
-
-.player-list {
-    min-height: 100px;
-}
-
-.player-list .empty-state {
-    text-align: center;
-    padding: var(--spacing-lg);
-    color: var(--text-light);
-    font-style: italic;
-}
-
-.player-item {
-    padding: var(--spacing-sm);
-    margin-bottom: var(--spacing-xs);
-    background: var(--bg-color);
-    border-radius: var(--radius-sm);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-/* ============================================================================
-   QR CODE PANEL
-   ============================================================================ */
-
-.qr-panel {
-    text-align: center;
-}
-
-.qr-code-container {
-    margin: var(--spacing-lg) 0;
-    display: flex;
-    justify-content: center;
-}
-
-.qr-code {
-    max-width: 300px;
-    width: 100%;
-    height: auto;
-    border: 4px solid var(--white);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-md);
-}
-
-.join-url {
-    margin-top: var(--spacing-md);
-}
-
-.join-url code {
-    background: var(--bg-color);
-    padding: var(--spacing-sm) var(--spacing-md);
-    border-radius: var(--radius-sm);
-    font-size: 1rem;
-    color: var(--primary-color);
-    word-break: break-all;
-}
+.qr-panel { text-align: center; }
+.qr-code-container { margin: var(--spacing-lg) 0; display: flex; justify-content: center; }
+.qr-code { max-width: 300px; width: 100%; border-radius: var(--radius-md); box-shadow: var(--shadow-md); }
+.join-url code { background: var(--bg-color); padding: var(--spacing-sm) var(--spacing-md); border-radius: var(--radius-sm); color: var(--primary-color); }
 
 /* ============================================================================
    BUTTONS
@@ -236,47 +423,11 @@ body {
     box-shadow: var(--shadow-sm);
 }
 
-.btn:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-}
-
-.btn:active {
-    transform: translateY(0);
-}
-
-.btn-primary {
-    background-color: var(--primary-color);
-    color: var(--white);
-}
-
-.btn-primary:hover {
-    background-color: var(--primary-dark);
-}
-
-.btn-success {
-    background-color: var(--success-color);
-    color: var(--white);
-}
-
-.btn-success:hover {
-    background-color: var(--success-dark);
-}
-
-.btn-danger {
-    background-color: var(--danger-color);
-    color: var(--white);
-}
-
-.btn-danger:hover {
-    background-color: var(--danger-dark);
-}
-
-.btn-large {
-    width: 100%;
-    padding: var(--spacing-md) var(--spacing-lg);
-    font-size: 1.2rem;
-}
+.btn:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.btn-primary { background-color: var(--primary-color); color: var(--white); }
+.btn-success { background-color: var(--success-color); color: var(--white); }
+.btn-danger { background-color: var(--danger-color); color: var(--white); }
+.btn-large { width: 100%; padding: var(--spacing-md); font-size: 1.2rem; }
 
 .button-grid {
     display: grid;
@@ -286,8 +437,16 @@ body {
 }
 
 /* ============================================================================
-   JOIN CARD
+   JOIN FORM
    ============================================================================ */
+
+.container-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: var(--spacing-md);
+}
 
 .join-card {
     background: var(--white);
@@ -298,341 +457,29 @@ body {
     width: 100%;
 }
 
-.join-header {
-    text-align: center;
-    margin-bottom: var(--spacing-lg);
-}
+.join-header { text-align: center; margin-bottom: var(--spacing-lg); }
+.join-header h1 { font-size: 2.5rem; color: var(--primary-color); }
 
-.join-header h1 {
-    font-size: 2.5rem;
-    color: var(--primary-color);
-    margin-bottom: var(--spacing-xs);
-}
-
-.join-header .subtitle {
-    font-size: 1.1rem;
-    color: var(--text-light);
-}
-
-/* ============================================================================
-   FORMS
-   ============================================================================ */
-
-.form-group {
-    margin-bottom: var(--spacing-lg);
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: var(--spacing-xs);
-    font-weight: 600;
-    color: var(--text-color);
-}
-
+.form-group { margin-bottom: var(--spacing-lg); }
+.form-group label { display: block; margin-bottom: var(--spacing-xs); font-weight: 600; }
 .form-group input[type="text"] {
     width: 100%;
     padding: var(--spacing-md);
     border: 2px solid var(--border-color);
     border-radius: var(--radius-md);
     font-size: 1.1rem;
-    transition: border-color 0.3s ease;
 }
-
-.form-group input[type="text"]:focus {
-    outline: none;
-    border-color: var(--primary-color);
-}
-
-.form-group input[type="text"]::placeholder {
-    color: var(--text-light);
-}
-
-form.disabled {
-    opacity: 0.6;
-    pointer-events: none;
-}
+.form-group input:focus { outline: none; border-color: var(--primary-color); }
 
 /* ============================================================================
-   STATUS MESSAGES
+   RESPONSIVE
    ============================================================================ */
 
-.status-message {
-    margin-top: var(--spacing-md);
-    padding: var(--spacing-md);
-    border-radius: var(--radius-md);
-    text-align: center;
-    font-weight: 600;
-}
-
-.status-message.success {
-    background-color: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
-}
-
-.status-message.error {
-    background-color: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
-}
-
-.status-message.hidden {
-    display: none;
-}
-
-/* ============================================================================
-   PLAY PAGE - STATE PANELS
-   ============================================================================ */
-
-.state-panel {
-    max-width: 800px;
-    margin: 0 auto;
-}
-
-.state-panel.hidden {
-    display: none;
-}
-
-/* Waiting State */
-.waiting-content,
-.finished-content {
-    text-align: center;
-    padding: var(--spacing-xl);
-    background: var(--white);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-md);
-}
-
-.waiting-content h2,
-.finished-content h2 {
-    font-size: 2rem;
-    margin-bottom: var(--spacing-md);
-    color: var(--primary-color);
-}
-
-.waiting-content p,
-.finished-content p {
-    font-size: 1.2rem;
-    color: var(--text-light);
-}
-
-/* Spinner Animation */
-.spinner {
-    width: 60px;
-    height: 60px;
-    margin: 0 auto var(--spacing-lg);
-    border: 5px solid var(--border-color);
-    border-top-color: var(--primary-color);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-/* ============================================================================
-   QUESTION DISPLAY
-   ============================================================================ */
-
-.question-header {
-    background: var(--white);
-    padding: var(--spacing-md);
-    border-radius: var(--radius-lg);
-    margin-bottom: var(--spacing-md);
-    box-shadow: var(--shadow-sm);
-}
-
-.question-number {
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: var(--primary-color);
-    text-align: center;
-}
-
-.question-text {
-    background: var(--white);
-    padding: var(--spacing-xl);
-    border-radius: var(--radius-lg);
-    margin-bottom: var(--spacing-lg);
-    font-size: 1.5rem;
-    font-weight: 600;
-    text-align: center;
-    box-shadow: var(--shadow-md);
-    min-height: 120px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-/* ============================================================================
-   ANSWER OPTIONS
-   ============================================================================ */
-
-.answer-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: var(--spacing-md);
-    margin-bottom: var(--spacing-lg);
-}
-
-.answer-option {
-    padding: var(--spacing-lg);
-    font-size: 1.1rem;
-    font-weight: 600;
-    background: var(--white);
-    border: 3px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: var(--shadow-sm);
-}
-
-.answer-option:hover:not(:disabled) {
-    border-color: var(--primary-color);
-    background-color: var(--primary-color);
-    color: var(--white);
-    transform: scale(1.05);
-    box-shadow: var(--shadow-md);
-}
-
-.answer-option:active:not(:disabled) {
-    transform: scale(0.98);
-}
-
-.answer-option.selected {
-    border-color: var(--success-color);
-    background-color: var(--success-color);
-    color: var(--white);
-}
-
-.answer-option:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
-}
-
-/* ============================================================================
-   ANSWER FEEDBACK
-   ============================================================================ */
-
-.answer-feedback {
-    text-align: center;
-    padding: var(--spacing-md);
-    background: #d4edda;
-    color: #155724;
-    border: 2px solid #c3e6cb;
-    border-radius: var(--radius-md);
-    font-size: 1.1rem;
-    font-weight: 600;
-}
-
-.answer-feedback.hidden {
-    display: none;
-}
-
-/* ============================================================================
-   INFO TEXT
-   ============================================================================ */
-
-.info-text {
-    font-size: 0.95rem;
-    color: var(--text-light);
-    line-height: 1.6;
-}
-
-.empty-state {
-    text-align: center;
-    padding: var(--spacing-lg);
-    color: var(--text-light);
-    font-style: italic;
-}
-
-/* ============================================================================
-   RESPONSIVE DESIGN
-   ============================================================================ */
-
-/* Tablet */
 @media (max-width: 768px) {
-    .header h1 {
-        font-size: 2rem;
-    }
-    
-    .container {
-        padding: var(--spacing-md);
-    }
-    
-    .panel {
-        padding: var(--spacing-md);
-    }
-    
-    .status-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
-    .button-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .answer-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .question-text {
-        font-size: 1.3rem;
-        padding: var(--spacing-lg);
-    }
+    .header h1 { font-size: 1.5rem; }
+    .big-question { font-size: 1.8rem; }
+    .kahoot-options { grid-template-columns: 1fr; }
+    .kahoot-answer-grid { height: 70vh; }
+    .bar-chart { height: 300px; }
+    .leaderboard-entry { font-size: 1rem; padding: var(--spacing-sm); }
 }
-
-/* Mobile */
-@media (max-width: 480px) {
-    .header h1 {
-        font-size: 1.5rem;
-    }
-    
-    .header .subtitle {
-        font-size: 0.95rem;
-    }
-    
-    .join-card {
-        padding: var(--spacing-lg);
-    }
-    
-    .join-header h1 {
-        font-size: 2rem;
-    }
-    
-    .qr-code {
-        max-width: 200px;
-    }
-    
-    .status-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .status-value {
-        font-size: 1.5rem;
-    }
-}
-
-/* ============================================================================
-   UTILITY CLASSES
-   ============================================================================ */
-
-.hidden {
-    display: none !important;
-}
-
-.text-center {
-    text-align: center;
-}
-
-.mt-1 { margin-top: var(--spacing-xs); }
-.mt-2 { margin-top: var(--spacing-sm); }
-.mt-3 { margin-top: var(--spacing-md); }
-.mt-4 { margin-top: var(--spacing-lg); }
-
-.mb-1 { margin-bottom: var(--spacing-xs); }
-.mb-2 { margin-bottom: var(--spacing-sm); }
-.mb-3 { margin-bottom: var(--spacing-md); }
-.mb-4 { margin-bottom: var(--spacing-lg); }
-

@@ -53,8 +53,8 @@ def get_llm_response(user_message: str, system_prompt: str = None, model: str = 
         return f"Error: Could not get response from LLM - {str(e)}"
 
 
-
-user_message = ["Daan2004", "Sophie_03", "Lotte123", "Thijs_Ajax", "Super_Sem", "Emma24", "Lucas_B", "Gamer_Mike", "x_Julia_x", "User1234", "Kashoot Me", "Mike Oxlong", "Barry Pooter", "Peter Selie", "Wilma Kaan", "Conny Plassen", "Justin Case", "Loading...", "Reconnecting...", "404 Not Found", "Connection Lost", "No Name", "Waiting for host...", "You", "Nobody", "Anonymous", "asdf", "qwerty", "hallo", "ik", "...", "???", "lol", "hoi", "boeie", "HappyPanda", "CrazyTiger", "LuckyLobster", "SmartDolphin", "FastEagle", "MysticShark", "The GOAT", "MVP", "Winner", "Nummer 1", "De Beste", "Pro Player", "I'm Gonna Win"]
+user_message = ["Quiz on my face"]
+#user_message = ["Daan2004", "Sophie_03", "Lotte123", "Thijs_Ajax", "Super_Sem", "Emma24", "Lucas_B", "Gamer_Mike", "x_Julia_x", "User1234", "Kashoot Me", "Mike Oxlong", "Barry Pooter", "Peter Selie", "Wilma Kaan", "Conny Plassen", "Justin Case", "Loading...", "Reconnecting...", "404 Not Found", "Connection Lost", "No Name", "Waiting for host...", "You", "Nobody", "Anonymous", "asdf", "qwerty", "hallo", "ik", "...", "???", "lol", "hoi", "boeie", "HappyPanda", "CrazyTiger", "LuckyLobster", "SmartDolphin", "FastEagle", "MysticShark", "The GOAT", "MVP", "Winner", "Nummer 1", "De Beste", "Pro Player", "I'm Gonna Win"]
 system_prompt_pre_quiz = """You are 'QuizBot 3000', a sarcastic stand-up comedian robot with an edgy sense of humor.
 
 YOUR TASK:

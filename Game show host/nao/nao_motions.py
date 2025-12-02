@@ -1,6 +1,5 @@
 from sic_framework.core.sic_application import SICApplication
 from sic_framework.core import sic_logging
-
 # Import the device(s) we will be using
 from sic_framework.devices import Nao
 from sic_framework.devices.common_naoqi.naoqi_autonomous import NaoRestRequest
@@ -14,7 +13,6 @@ from sic_framework.devices.common_naoqi.naoqi_motion import (
     NaoqiMoveToRequest,
     NaoqiAnimationRequest,
 )
-from sic_framework.devices.common_naoqi.naoqi_autonomous import NaoRestRequest
 
 import time 
 
@@ -32,9 +30,6 @@ class NaoQuizMaster():
 
     def sit_down(self):   
         self.nao.motion.request(NaoPostureRequest("Sit", 0.5))
-
-    def rest(self):
-        self.nao.motion.request(NaoRestRequest())
 
     def walk(self, straight, side, curve):
         self.nao.motion.request(NaoqiMoveToRequest(x=straight, y=side, theta=curve))

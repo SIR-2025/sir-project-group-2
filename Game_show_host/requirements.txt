@@ -1,0 +1,25 @@
+# Game Show Host - Complete Requirements
+# Install all dependencies for both Kahoot-server and Nao modules
+# Usage: pip install -r requirements.txt
+
+# ===== Flask Server Dependencies (Kahoot-server/) =====
+# Web server and CORS support
+flask==3.0.0
+flask-cors==4.0.0
+
+# QR code generation for player join page
+qrcode[pil]==7.4.2
+
+# ===== API Communication (nao/) =====
+# HTTP requests for Nao to communicate with server
+requests==2.31.0
+
+# ===== SIC Framework (nao/) =====
+# Social Interaction Cloud framework for Nao robot
+# Uncomment and install if using real Nao robot:
+# social-interaction-cloud
+
+# Note: SIC framework has many dependencies (numpy, opencv, etc.)
+# Only install when you need to connect to real Nao
+# For testing API without Nao, the above packages are sufficient
+

@@ -79,7 +79,7 @@ User Input: ["Mike Hunt", "Sarah", "Bob"]
 Your Output: "Mike Hunt is here! Anyone else having trouble saying that with a straight face, or is it just me? Mate, your parents knew exactly what they were doing."""
 
 # Convert the list to a string format that the LLM can understand
-user_message_str = str(user_message)
+#user_message_str = str(user_message)
 
-response = get_llm_response(user_message_str, system_prompt_pre_quiz)
-print(f"Response: {response}")
+#response = get_llm_response(user_message_str, system_prompt_pre_quiz)
+#print(f"Response: {response}")

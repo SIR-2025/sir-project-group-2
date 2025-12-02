@@ -5,7 +5,7 @@ Global state management for the quiz.
 """
 
 import time
-from quiz_data import QUESTIONS
+from data.quiz_data import QUESTIONS
 
 # Quiz phases
 PHASE_WAITING = "waiting"
@@ -75,6 +75,6 @@ def get_answer_distribution():
 
 def save_current_rankings():
     """Save current rankings for comparison after next question."""
-    from scoring import get_rankings
+    from core.scoring import get_rankings
     rankings = get_rankings(quiz_state["player_scores"])
     quiz_state["previous_rankings"] = {pid: rank for pid, _, rank in rankings}

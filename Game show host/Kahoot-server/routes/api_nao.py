@@ -5,13 +5,13 @@ REST API endpoints for Nao robot control.
 """
 
 from flask import Blueprint, jsonify
-from quiz_data import QUESTIONS
-from state import (
+from data.quiz_data import QUESTIONS
+from core.state import (
     quiz_state, get_current_question_data, reset_state,
     start_answer_timer, get_answer_distribution, save_current_rankings,
     PHASE_WAITING, PHASE_QUESTION, PHASE_ANSWERING, PHASE_RESULTS, PHASE_LEADERBOARD
 )
-from scoring import calculate_score, get_rankings, calculate_rank_changes
+from core.scoring import calculate_score, get_rankings, calculate_rank_changes
 
 nao_api_bp = Blueprint('nao_api', __name__, url_prefix='/api')
 
@@ -46,12 +46,12 @@ def start():
     quiz_state["current_answers"] = {}
     quiz_state["options_revealed"] = False
     quiz_state["phase"] = PHASE_QUESTION
-    
+
     # Initialize scores for all players
     for player_id in quiz_state["players"]:
         if player_id not in quiz_state["player_scores"]:
             quiz_state["player_scores"][player_id] = 0
-    
+
     return jsonify({"success": True, "message": "Quiz started"})
 
 
@@ -60,7 +60,7 @@ def reveal_options():
     """Reveal answer options and start timer."""
     if not quiz_state["is_active"]:
         return jsonify({"error": "Quiz not active"}), 400
-    
+
     start_answer_timer()
     return jsonify({"success": True, "message": "Options revealed"})
 
@@ -70,19 +70,19 @@ def show_answers():
     """Close answering and show answer distribution."""
     if not quiz_state["is_active"]:
         return jsonify({"error": "Quiz not active"}), 400
-    
+
     question = get_current_question_data()
     if not question:
         return jsonify({"error": "No active question"}), 400
-    
+
     # Calculate scores for this question
     for player_id, answer_data in quiz_state["current_answers"].items():
         is_correct = answer_data["answer"] == question["correct_answer"]
         points = calculate_score(answer_data["time"], is_correct)
         quiz_state["player_scores"][player_id] = quiz_state["player_scores"].get(player_id, 0) + points
-    
+
     quiz_state["phase"] = PHASE_RESULTS
-    
+
     return jsonify({
         "success": True,
         "distribution": get_answer_distribution(),
@@ -108,7 +108,7 @@ def get_leaderboard_data():
     """Helper: build leaderboard list with top 10 players."""
     rankings = get_rankings(quiz_state["player_scores"])
     rank_data = calculate_rank_changes(rankings, quiz_state["previous_rankings"])
-    
+
     leaderboard = []
     for entry in rank_data[:10]:
         player = quiz_state["players"].get(entry["player_id"], {})
@@ -125,10 +125,10 @@ def get_leaderboard_data():
 def next_question():
     """Move to next question."""
     current = quiz_state["current_question"]
-    
+
     # Save rankings before moving to next question
     save_current_rankings()
-    
+
     if current < len(QUESTIONS) - 1:
         quiz_state["current_question"] = current + 1
         quiz_state["current_answers"] = {}
@@ -148,7 +148,7 @@ def results():
     question = get_current_question_data()
     if not question:
         return jsonify({"error": "No active question"}), 400
-    
+
     return jsonify({
         "distribution": get_answer_distribution(),
         "correct_answer": question["correct_answer"],

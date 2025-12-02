@@ -12,14 +12,14 @@ def calculate_score(answer_time_seconds: float, is_correct: bool) -> int:
     """Calculate score based on answer time. Returns 0-1000 points."""
     if not is_correct:
         return 0
-    
+
     # Clamp time to max
     time_used = min(answer_time_seconds, MAX_TIME_SECONDS)
-    
+
     # Kahoot formula: faster = more points (minimum 500 for correct)
     time_factor = 1 - (time_used / MAX_TIME_SECONDS) / 2
     score = int(MAX_POINTS * time_factor)
-    
+
     return max(score, 500)  # Minimum 500 for correct answer
 
 
@@ -42,4 +42,3 @@ def calculate_rank_changes(current_rankings: list, previous_rankings: dict) -> l
             "change": change
         })
     return result
-

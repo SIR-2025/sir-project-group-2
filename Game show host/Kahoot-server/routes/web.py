@@ -5,9 +5,9 @@ HTML page routes for players, admin, and host display.
 """
 
 from flask import Blueprint, render_template, request
-from quiz_data import QUIZ_TITLE, QUESTIONS
-from state import quiz_state
-from helpers import get_local_ip, generate_qr_code
+from data.quiz_data import QUIZ_TITLE, QUESTIONS
+from core.state import quiz_state
+from core.helpers import get_local_ip, generate_qr_code
 
 web_bp = Blueprint('web', __name__)
 
@@ -24,8 +24,8 @@ def admin():
     local_ip = get_local_ip()
     join_url = f"http://{local_ip}:5000/join"
     qr_code = generate_qr_code(join_url)
-    
-    return render_template('admin.html', 
+
+    return render_template('admin.html',
                          quiz_title=QUIZ_TITLE,
                          total_questions=len(QUESTIONS),
                          qr_code=qr_code,
@@ -43,8 +43,8 @@ def play():
     """Quiz play page for players on their phones."""
     player_id = request.args.get('player_id', '')
     player_name = quiz_state["players"].get(player_id, {}).get("name", "Unknown")
-    
-    return render_template('play.html', 
+
+    return render_template('play.html',
                          player_id=player_id,
                          player_name=player_name,
                          quiz_title=QUIZ_TITLE)

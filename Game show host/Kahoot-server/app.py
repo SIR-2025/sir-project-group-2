@@ -6,13 +6,13 @@ Main entry point. Registers all blueprints and starts the server.
 
 from flask import Flask
 from flask_cors import CORS
-from quiz_data import QUESTIONS, validate_questions
-from helpers import get_local_ip
+from data.quiz_data import QUESTIONS, validate_questions
+from core.helpers import get_local_ip
 
 # Import blueprints
-from routes_web import web_bp
-from routes_api_player import player_api_bp
-from routes_api_nao import nao_api_bp
+from routes.web import web_bp
+from routes.api_player import player_api_bp
+from routes.api_nao import nao_api_bp
 
 # Initialize Flask app
 app = Flask(__name__)

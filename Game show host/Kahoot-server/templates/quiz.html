@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Display - {{ quiz_title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="quiz-display">
+    
+    <!-- Waiting Screen -->
+    <div id="screen-waiting" class="quiz-screen">
+        <div class="waiting-display">
+            <h1>🎮 {{ quiz_title }}</h1>
+            <div class="player-counter">
+                <span id="player-count">0</span>
+                <span class="counter-label">Players joined</span>
+            </div>
+            <p class="waiting-text">Waiting for players...</p>
+        </div>
+    </div>
+
+    <!-- Question Screen (before options revealed) -->
+    <div id="screen-question" class="quiz-screen hidden">
+        <div class="question-display">
+            <div class="question-badge">Question <span id="q-number">1</span> / {{ total_questions }}</div>
+            <h2 id="question-text" class="big-question">Loading question...</h2>
+        </div>
+    </div>
+
+    <!-- Answering Screen (options visible) -->
+    <div id="screen-answering" class="quiz-screen hidden">
+        <div class="question-display">
+            <div class="question-badge">Question <span id="q-number-2">1</span> / {{ total_questions }}</div>
+            <h2 id="question-text-2" class="big-question">Loading...</h2>
+        </div>
+        <div class="kahoot-options" id="options-grid">
+            <!-- Options inserted by JS -->
+        </div>
+        <div class="answer-counter">
+            <span id="answered-count">0</span> / <span id="total-players">0</span> answered
+        </div>
+    </div>
+
+    <!-- Results Screen (bar chart) -->
+    <div id="screen-results" class="quiz-screen hidden">
+        <div class="results-display">
+            <h2>Results</h2>
+            <div class="bar-chart" id="bar-chart">
+                <!-- Bars inserted by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaderboard Screen -->
+    <div id="screen-leaderboard" class="quiz-screen hidden">
+        <div class="leaderboard-display">
+            <h2>🏆 Leaderboard</h2>
+            <div class="leaderboard-list" id="leaderboard-list">
+                <!-- Entries inserted by JS -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        const POLL_INTERVAL = 500;
+        const KAHOOT_COLORS = ['#E21B3C', '#1368CE', '#D89E00', '#26890C'];
+        const KAHOOT_SHAPES = ['▲', '◆', '●', '■'];
+        
+        let currentPhase = 'waiting';
+        let currentQuestion = -1;
+
+        // Show specific screen
+        function showScreen(screenId) {
+            document.querySelectorAll('.quiz-screen').forEach(s => s.classList.add('hidden'));
+            document.getElementById('screen-' + screenId).classList.remove('hidden');
+        }
+
+        // Render Kahoot-style options
+        function renderOptions(options) {
+            const grid = document.getElementById('options-grid');
+            grid.innerHTML = options.map((opt, i) => `
+                <div class="kahoot-option" style="background-color: ${KAHOOT_COLORS[i]}">
+                    <span class="option-shape">${KAHOOT_SHAPES[i]}</span>
+                    <span class="option-text">${opt}</span>
+                </div>
+            `).join('');
+        }
+
+        // Render bar chart for results
+        function renderBarChart(distribution, correctAnswer) {
+            const chart = document.getElementById('bar-chart');
+            const maxCount = Math.max(...Object.values(distribution), 1);
+            
+            chart.innerHTML = Object.entries(distribution).map(([idx, count]) => {
+                const height = (count / maxCount) * 100;
+                const isCorrect = parseInt(idx) === correctAnswer;
+                return `
+                    <div class="bar-container">
+                        <div class="bar-count">${count}</div>
+                        <div class="bar" style="height: ${height}%; background-color: ${KAHOOT_COLORS[idx]}">
+                            ${isCorrect ? '<span class="correct-mark">✓</span>' : ''}
+                        </div>
+                        <div class="bar-shape" style="color: ${KAHOOT_COLORS[idx]}">${KAHOOT_SHAPES[idx]}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Render leaderboard
+        function renderLeaderboard(entries) {
+            const list = document.getElementById('leaderboard-list');
+            list.innerHTML = entries.map((entry, i) => {
+                const changeClass = entry.change > 0 ? 'up' : entry.change < 0 ? 'down' : '';
+                const changeText = entry.change > 0 ? `↑${entry.change}` : entry.change < 0 ? `↓${Math.abs(entry.change)}` : '-';
+                return `
+                    <div class="leaderboard-entry ${i < 3 ? 'top-three' : ''}">
+                        <span class="rank">${entry.rank}</span>
+                        <span class="name">${entry.name}</span>
+                        <span class="change ${changeClass}">${changeText}</span>
+                        <span class="score">${entry.score}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Poll for updates
+        async function pollStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/api/status`);
+                const data = await response.json();
+                
+                // Update player count
+                document.getElementById('player-count').textContent = data.player_count;
+                document.getElementById('total-players').textContent = data.player_count;
+                document.getElementById('answered-count').textContent = data.answered_count;
+
+                // Handle phase changes
+                if (data.phase !== currentPhase || data.current_question !== currentQuestion) {
+                    currentPhase = data.phase;
+                    currentQuestion = data.current_question;
+                    
+                    if (data.phase === 'waiting') {
+                        showScreen('waiting');
+                    } else if (data.phase === 'question') {
+                        document.getElementById('q-number').textContent = data.current_question + 1;
+                        document.getElementById('question-text').textContent = data.current_question_data?.text || '';
+                        showScreen('question');
+                    } else if (data.phase === 'answering') {
+                        document.getElementById('q-number-2').textContent = data.current_question + 1;
+                        document.getElementById('question-text-2').textContent = data.current_question_data?.text || '';
+                        renderOptions(data.current_question_data?.options || []);
+                        showScreen('answering');
+                    } else if (data.phase === 'results') {
+                        // Fetch results data
+                        const resultsResp = await fetch(`${API_BASE}/api/results`);
+                        const results = await resultsResp.json();
+                        renderBarChart(results.distribution, results.correct_answer);
+                        showScreen('results');
+                    } else if (data.phase === 'leaderboard') {
+                        // Fetch and render leaderboard
+                        const lbResp = await fetch(`${API_BASE}/api/leaderboard`);
+                        const lbData = await lbResp.json();
+                        renderLeaderboard(lbData.leaderboard || []);
+                        showScreen('leaderboard');
+                    }
+                }
+            } catch (error) {
+                console.error('Poll error:', error);
+            }
+        }
+
+        // Initialize
+        pollStatus();
+        setInterval(pollStatus, POLL_INTERVAL);
+    </script>
+</body>
+</html>
+

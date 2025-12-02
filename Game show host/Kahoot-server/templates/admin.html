@@ -22,15 +22,15 @@
             <h2>📊 Quiz Status</h2>
             <div class="status-grid">
                 <div class="status-item">
-                    <div class="status-label">Status</div>
-                    <div class="status-value" id="quiz-status">Waiting...</div>
+                    <div class="status-label">Phase</div>
+                    <div class="status-value" id="quiz-phase">waiting</div>
                 </div>
                 <div class="status-item">
-                    <div class="status-label">Current Question</div>
+                    <div class="status-label">Question</div>
                     <div class="status-value" id="current-question">-</div>
                 </div>
                 <div class="status-item">
-                    <div class="status-label">Total Questions</div>
+                    <div class="status-label">Total</div>
                     <div class="status-value">{{ total_questions }}</div>
                 </div>
                 <div class="status-item">
@@ -44,18 +44,38 @@
             </div>
         </div>
 
-        <!-- Player List Panel -->
+        <!-- Control Panel -->
         <div class="panel">
-            <h2>👥 Players</h2>
-            <div id="player-list" class="player-list">
-                <p class="empty-state">No players yet. Share the QR code below!</p>
+            <h2>🎛️ Quiz Flow Controls</h2>
+            <p class="info-text">Test the quiz flow (same as Nao API calls)</p>
+            
+            <div class="control-flow">
+                <button onclick="startQuiz()" class="btn btn-success" id="btn-start">
+                    1. ▶️ Start Quiz
+                </button>
+                <button onclick="revealOptions()" class="btn btn-primary" id="btn-reveal">
+                    2. 👁️ Reveal Options
+                </button>
+                <button onclick="showAnswers()" class="btn btn-primary" id="btn-answers">
+                    3. 📊 Show Answers
+                </button>
+                <button onclick="showLeaderboard()" class="btn btn-primary" id="btn-leaderboard">
+                    4. 🏆 Show Leaderboard
+                </button>
+                <button onclick="nextQuestion()" class="btn btn-primary" id="btn-next">
+                    5. ⏭️ Next Question
+                </button>
             </div>
+            
+            <hr style="margin: 1.5rem 0; border-color: #eee;">
+            
+            <button onclick="resetQuiz()" class="btn btn-danger">🔄 Reset Quiz</button>
         </div>
 
         <!-- QR Code Panel -->
         <div class="panel qr-panel">
             <h2>📱 Join Quiz</h2>
-            <p>Scan this QR code or visit:</p>
+            <p>Scan QR code or visit:</p>
             <div class="qr-code-container">
                 <img src="{{ qr_code }}" alt="QR Code" class="qr-code">
             </div>
@@ -64,46 +84,46 @@
             </div>
         </div>
 
-        <!-- Control Panel -->
+        <!-- Player List Panel -->
         <div class="panel">
-            <h2>🎛️ Controls</h2>
-            <p class="info-text">
-                The Nao robot controls the quiz flow via API.<br>
-                These buttons are for manual testing only.
-            </p>
-            <div class="button-grid">
-                <button onclick="startQuiz()" class="btn btn-success">▶️ Start Quiz</button>
-                <button onclick="nextQuestion()" class="btn btn-primary">⏭️ Next Question</button>
-                <button onclick="resetQuiz()" class="btn btn-danger">🔄 Reset Quiz</button>
+            <h2>👥 Players</h2>
+            <div id="player-list" class="player-list">
+                <p class="empty-state">No players yet</p>
             </div>
         </div>
 
     </div>
 
-    <!-- JavaScript -->
-    <script>
-        // ========================================
-        // Configuration
-        // ========================================
-        
-        const API_BASE = window.location.origin;
-        const POLL_INTERVAL = 2000; // Poll every 2 seconds
+    <style>
+        .control-flow {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        .control-flow .btn {
+            flex: 1;
+            min-width: 150px;
+        }
+        .btn.active {
+            box-shadow: 0 0 0 3px #46178F;
+        }
+    </style>
 
-        // ========================================
-        // Status Update Function
-        // ========================================
+    <script>
+        const API_BASE = window.location.origin;
+        const POLL_INTERVAL = 1000;
         
+        // Update status display
         async function updateStatus() {
             try {
-                // Fetch status from API
                 const response = await fetch(`${API_BASE}/api/status`);
                 const data = await response.json();
                 
-                // Update status display
-                document.getElementById('quiz-status').textContent = 
-                    data.is_active ? '🟢 Active' : '🔴 Inactive';
+                document.getElementById('quiz-phase').textContent = data.phase || 'waiting';
+                document.getElementById('player-count').textContent = data.player_count;
+                document.getElementById('answered-count').textContent = data.answered_count;
                 
-                // Update question counter
                 if (data.current_question >= 0) {
                     document.getElementById('current-question').textContent = 
                         `${data.current_question + 1} / ${data.total_questions}`;
@@ -111,79 +131,56 @@
                     document.getElementById('current-question').textContent = '-';
                 }
                 
-                // Update player counts
-                document.getElementById('player-count').textContent = data.player_count;
-                document.getElementById('answered-count').textContent = data.answered_count;
+                // Highlight current phase button
+                highlightPhaseButton(data.phase);
                 
             } catch (error) {
-                console.error('Error updating status:', error);
-                document.getElementById('quiz-status').textContent = '⚠️ Error';
+                console.error('Status error:', error);
             }
         }
-
-        // ========================================
-        // Manual Control Functions
-        // ========================================
         
-        async function startQuiz() {
-            try {
-                const response = await fetch(`${API_BASE}/api/start`, {
-                    method: 'POST'
-                });
-                const data = await response.json();
-                alert(data.message || 'Quiz started!');
-                updateStatus();
-            } catch (error) {
-                console.error('Error starting quiz:', error);
-                alert('Error starting quiz');
-            }
+        function highlightPhaseButton(phase) {
+            document.querySelectorAll('.control-flow .btn').forEach(b => b.classList.remove('active'));
+            const mapping = {
+                'waiting': 'btn-start',
+                'question': 'btn-reveal',
+                'answering': 'btn-answers',
+                'results': 'btn-leaderboard',
+                'leaderboard': 'btn-next'
+            };
+            const btnId = mapping[phase];
+            if (btnId) document.getElementById(btnId).classList.add('active');
         }
-
-        async function nextQuestion() {
-            try {
-                const response = await fetch(`${API_BASE}/api/next`, {
-                    method: 'POST'
-                });
-                const data = await response.json();
-                alert(data.message || 'Next question');
-                updateStatus();
-            } catch (error) {
-                console.error('Error going to next question:', error);
-                alert('Error going to next question');
-            }
-        }
-
-        async function resetQuiz() {
-            if (!confirm('Are you sure you want to reset the quiz? This will remove all players and answers.')) {
-                return;
-            }
-            
-            try {
-                const response = await fetch(`${API_BASE}/api/reset`, {
-                    method: 'POST'
-                });
-                const data = await response.json();
-                alert(data.message || 'Quiz reset!');
-                updateStatus();
-            } catch (error) {
-                console.error('Error resetting quiz:', error);
-                alert('Error resetting quiz');
-            }
-        }
-
-        // ========================================
-        // Initialization
-        // ========================================
         
-        // Initial status update
+        // API calls
+        async function apiCall(endpoint, method = 'POST') {
+            try {
+                const response = await fetch(`${API_BASE}/api/${endpoint}`, { method });
+                const data = await response.json();
+                console.log(`${endpoint}:`, data);
+                updateStatus();
+                return data;
+            } catch (error) {
+                console.error(`Error ${endpoint}:`, error);
+                alert(`Error: ${endpoint}`);
+            }
+        }
+        
+        function startQuiz() { apiCall('start'); }
+        function revealOptions() { apiCall('reveal_options'); }
+        function showAnswers() { apiCall('show_answers'); }
+        function showLeaderboard() { apiCall('show_leaderboard'); }
+        function nextQuestion() { apiCall('next'); }
+        function resetQuiz() {
+            if (confirm('Reset quiz and remove all players?')) {
+                apiCall('reset');
+            }
+        }
+        
+        // Initialize
         updateStatus();
-        
-        // Start polling for status updates
         setInterval(updateStatus, POLL_INTERVAL);
-        
-        console.log('Admin dashboard initialized');
     </script>
 
 </body>
 </html>
-

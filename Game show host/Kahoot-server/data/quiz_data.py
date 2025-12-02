@@ -70,15 +70,15 @@ def validate_questions():
         for field in required:
             if field not in q:
                 raise ValueError(f"Question {i}: Missing field '{field}'")
-        
+
         # Check options count
         if len(q['options']) != 4:
             raise ValueError(f"Question {i}: Must have exactly 4 options")
-        
+
         # Check correct_answer range
         if not 0 <= q['correct_answer'] < 4:
             raise ValueError(f"Question {i}: correct_answer must be 0-3")
-    
+
     return True
 
 
@@ -91,4 +91,3 @@ if __name__ == "__main__":
         print(f"✅ Questions: {len(QUESTIONS)}")
     except ValueError as e:
         print(f"❌ Error: {e}")
-

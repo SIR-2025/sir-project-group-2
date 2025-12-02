@@ -1,245 +1,139 @@
-# Kahoot Server Module
+# Kahoot Server
 
-Quiz server voor het Game Show Host project. Pure Flask, simpel en uitbreidbaar.
+Interactive quiz application inspired by Kahoot, designed for NAO robot control.
 
-## 📁 Project Structuur
+## Features
 
-Dit is de **Server module** van het Game Show Host project:
+- Real-time multiplayer quiz game
+- Kahoot-style speed-based scoring (500-1000 points)
+- QR code generation for easy player joining
+- Admin dashboard for manual control
+- Host display for projector/TV
+- RESTful API for NAO robot integration
+- Leaderboard with rank tracking
 
-```
-Game show host/
-├── Kahoot-server/     ← Deze folder (Quiz server)
-│   ├── app.py
-│   ├── quiz_data.py
-│   └── ...
-└── nao/              ← Nao robot code
-```
-
-**Lees eerst**: `../README.md` (hoofd README) voor overzicht van hele project.
-
-## 🎯 Wat Doet Deze Module?
-
-De **Server module** beheert de quiz:
-- Houdt vragen en spelers bij (in-memory)
-- Biedt web interface voor spelers
-- Biedt REST API voor Nao robot
-- Simpel: geen database nodig
-
-## Quick Start
-
-### 1. Install Dependencies
-```bash
-# Installeer vanaf project root
-cd "Game show host"
-pip install -r requirements.txt
-```
-
-### 2. Run Server
-```bash
-# Start server
-cd "Game show host/Kahoot-server"
-python app.py
-```
-
-Je ziet:
-```
-🎮 Simple Kahoot Server Starting
-Server: http://localhost:5000
-```
-
-### 3. Test
-- **Admin**: `http://localhost:5000/admin` (overzicht + QR code)
-- **Join**: `http://localhost:5000/join` (voor spelers)
-
-## 📂 File Structure
+## Project Structure
 
 ```
 Kahoot-server/
-├── app.py              # Flask server met alle routes
-│                       # - Web routes (/, /admin, /join, /play)
-│                       # - API routes (/api/...)
-│                       # - Quiz state (in-memory dict)
-│
-├── quiz_data.py        # Vragen (EDIT DEZE!)
-│                       # - QUIZ_TITLE
-│                       # - QUESTIONS lijst
-│
-├── templates/          # HTML paginas voor spelers
-│   ├── admin.html      # Admin dashboard (+ QR code)
-│   ├── join.html       # Speler join pagina
-│   └── play.html       # Quiz interface
-│
-└── static/             # CSS en JS
-    └── css/
-        └── style.css   # Styling
+├── app.py                      # Application entry point
+├── routes/                     # HTTP endpoints
+│   ├── web.py                  # HTML pages (admin, join, play, quiz)
+│   ├── api_player.py           # Player API (join, answer, status)
+│   └── api_nao.py              # NAO robot API (quiz control)
+├── core/                       # Business logic
+│   ├── state.py                # Global state management
+│   ├── scoring.py              # Score calculation
+│   └── helpers.py              # Utilities (QR code, IP detection)
+├── data/                       # Configuration
+│   └── quiz_data.py            # Quiz questions and title
+├── templates/                  # HTML templates
+└── static/css/                 # Stylesheets
 ```
 
-**Note**: Dependencies zitten in `../requirements.txt` (project root)
+## Installation
 
-## 🔌 API voor Nao
-
-De Nao robot gebruikt deze endpoints om de quiz te besturen.
-
-### Status Ophalen
-```
-GET /api/status
-
-Wat je krijgt:
-{
-    "is_active": true,              # Quiz actief?
-    "current_question": 1,           # Huidige vraag nummer
-    "total_questions": 3,            # Totaal aantal vragen
-    "player_count": 5,               # Aantal spelers
-    "answered_count": 3,             # Aantal antwoorden
-    "current_question_data": {       # Huidige vraag
-        "text": "Vraag tekst",
-        "options": ["A", "B", "C", "D"],
-        "correct_answer": 2
-    }
-}
+```bash
+pip install flask flask-cors qrcode pillow
 ```
 
-**Nao gebruikt dit om**:
-- Te checken hoeveel spelers er zijn
-- Te zien hoeveel mensen hebben geantwoord
-- Huidige vraag te krijgen
+## Usage
 
-### Quiz Besturen
-```
-POST /api/start       # Start de quiz
-POST /api/next        # Ga naar volgende vraag
-POST /api/previous    # Ga naar vorige vraag (optioneel)
-POST /api/reset       # Reset alles
+### Start Server
+
+```bash
+python app.py
 ```
 
-### Resultaten Ophalen
-```
-GET /api/results
+Server runs on port 5000. Access points:
+- **Admin**: `http://localhost:5000/admin`
+- **Player Join**: `http://localhost:5000/join`
+- **Host Display**: `http://localhost:5000/quiz`
 
-Wat je krijgt:
-{
-    "total_players": 5,                          # Totaal spelers
-    "answered_count": 3,                         # Aantal antwoorden
-    "answer_distribution": {0: 1, 1: 2, 2: 0},  # Verdeling per optie
-    "correct_answer": 1,                         # Juiste antwoord index
-    "player_answers": [...]                      # Wie antwoordde wat
-}
-```
+### Quiz Flow
 
-**Nao gebruikt dit om**:
-- Juiste antwoord te zeggen
-- Statistieken te vertellen
-- Grappen te maken ("Niemand koos A!")
+1. Players join via QR code or join page
+2. NAO/Admin starts quiz: `POST /api/start`
+3. For each question:
+   - Show question: phase automatically set to `PHASE_QUESTION`
+   - Reveal options: `POST /api/reveal_options` (starts 20s timer)
+   - Players submit answers via mobile interface
+   - Show results: `POST /api/show_answers` (calculates scores)
+   - Show leaderboard: `POST /api/show_leaderboard`
+   - Next question: `POST /api/next`
+4. Quiz ends after last question
 
-## ✏️ Vragen Aanpassen
+## API Endpoints
 
-Edit `quiz_data.py`:
+### Player API (`/api/player`)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/join` | Join quiz, returns `player_id` |
+| POST | `/answer` | Submit answer (requires `player_id`, `answer` 0-3) |
+| GET | `/status?player_id=X` | Poll for quiz state updates |
+
+### NAO Robot API (`/api`)
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/status` | Complete quiz status |
+| GET | `/players` | List of player names |
+| POST | `/start` | Start quiz at question 0 |
+| POST | `/reveal_options` | Show options and start timer |
+| POST | `/show_answers` | Calculate scores, show distribution |
+| POST | `/show_leaderboard` | Display top 10 with rank changes |
+| GET | `/leaderboard` | Get leaderboard data |
+| POST | `/next` | Move to next question or finish |
+| GET | `/results` | Get answer distribution |
+| POST | `/reset` | Reset entire quiz |
+
+## Configuration
+
+### Edit Quiz Questions
+
+Edit [data/quiz_data.py](data/quiz_data.py):
 
 ```python
-# Quiz titel (verschijnt in interface)
-QUIZ_TITLE = "Jouw Quiz Naam"
+QUIZ_TITLE = "Your Quiz Title"
 
-# Lijst met vragen
 QUESTIONS = [
     {
-        "id": 0,                              # Uniek ID
-        "text": "Wat is de hoofdstad?",      # De vraag
-        "options": ["A", "B", "C", "D"],     # 4 opties
-        "correct_answer": 0                   # Index van juiste (0 = eerste)
+        "id": 0,
+        "text": "Your question?",
+        "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
+        "correct_answer": 0  # Index 0-3
     },
-    {
-        "id": 1,
-        "text": "Volgende vraag?",
-        "options": ["Optie 1", "Optie 2", "Optie 3", "Optie 4"],
-        "correct_answer": 2  # 2 = derde optie
-    }
+    # Add more questions...
 ]
 ```
 
-**Tips**:
-- Index begint bij 0 (0 = eerste optie, 1 = tweede, etc.)
-- Altijd 4 opties gebruiken
-- Elk vraag moet uniek `id` hebben
-- Test na elke wijziging!
+### Scoring System
 
-## 🤖 Voorbeeld: API Gebruiken vanuit Nao
+- **Correct answer**: 500-1000 points (faster = more points)
+- **Incorrect answer**: 0 points
+- **Max time**: 20 seconds
 
-Zie hoe de Nao module deze API gebruikt in `../nao/nao_kahoot.py`:
+Formula: Faster answers get up to 1000 points, slower answers get minimum 500 points.
 
-```python
-# Voorbeeld uit de Nao module
-import requests
+## Quiz Phases
 
-SERVER = "http://localhost:5000"
+1. `PHASE_WAITING` - Before quiz starts
+2. `PHASE_QUESTION` - Question displayed (options hidden)
+3. `PHASE_ANSWERING` - Options revealed, timer running
+4. `PHASE_RESULTS` - Answer distribution shown
+5. `PHASE_LEADERBOARD` - Top 10 players displayed
 
-# Haal status op
-status = requests.get(f"{SERVER}/api/status").json()
-print(f"Spelers: {status['player_count']}")
-print(f"Geantwoord: {status['answered_count']}")
+## State Management
 
-# Nao kan hier grappen maken
-if status['answered_count'] < status['player_count']:
-    nao.say("Kom op mensen, denk sneller!")
+All quiz state is in-memory (resets on server restart):
+- Player data (names, answers, scores)
+- Current question and phase
+- Answer submissions with timestamps
+- Rankings and rank changes
 
-# Ga naar volgende vraag
-requests.post(f"{SERVER}/api/next")
-```
+No database required.
 
-Voor volledige implementatie: zie `../nao/nao_kahoot.py`
+## Network Access
 
-## 🔨 Hoe Het Werkt
-
-### Data Flow
-1. **Vragen** → Hardcoded in `quiz_data.py`
-2. **State** → In-memory dictionary in `app.py`
-3. **Spelers** → Join via `/join`, antwoorden via `/api/player/answer`
-4. **Nao** → Bestuurt via `/api/start`, `/api/next`, etc.
-5. **Updates** → HTML polls elke 2 seconden
-
-### Voordelen van Deze Aanpak
-- ✅ Geen database nodig
-- ✅ Geen WebSockets / SocketIO
-- ✅ Simpel te begrijpen
-- ✅ Makkelijk uit te breiden
-- ✅ Werkt direct
-
-### Limitaties
-- ❌ Data gaat verloren bij restart (in-memory)
-- ❌ Polling (geen real-time push)
-- ❌ Single instance (geen load balancing)
-
-Voor basis demo's: perfect. Voor productie: voeg database toe.
-
-## 🚀 Uitbreiden
-
-Wil je features toevoegen? Dit zijn de plekken:
-
-### Meer Vragen
-→ Edit `quiz_data.py`
-
-### Timer Toevoegen
-→ Voeg timestamp toe in `quiz_state` dict
-→ Check tijd in `wait_for_answers()`
-
-### Scoring Systeem
-→ Bereken punten in `get_results()` functie
-→ Voeg score toe aan player dict
-
-### Database
-→ Vervang `quiz_state` dict met SQLite
-→ Gebruik SQLAlchemy voor easy ORM
-
-### Nieuwe Endpoints
-→ Voeg routes toe in `app.py`
-→ Update `../nao/nao_kahoot.py` om ze te gebruiken
-
-**Regel**: Houd het simpel. Test na elke wijziging.
-
-## 📚 Meer Informatie
-
-- **Over hele project**: Lees `../README.md`
-- **Over Nao module**: Lees `../nao/QUICKSTART.md`
-- **Troubleshooting**: Zie `../README.md` sectie "Veelvoorkomende Problemen"
-
-
-
+Players join from mobile devices on the same network. Server displays local IP on startup.

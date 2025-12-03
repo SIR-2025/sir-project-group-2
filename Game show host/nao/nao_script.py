@@ -2,7 +2,8 @@ from re import A
 from server_connection import KahootAPI
 from nao_connection import connect_nao
 import time
-from nao_listening import NaoListener 
+from nao_listener import NaoListener 
+from llm_integration import get_llm_response
 
 from sic_framework.core.sic_application import SICApplication
 from sic_framework.core import sic_logging
@@ -48,10 +49,20 @@ class NaoQuizMaster():
         
         self.nao.motion.request(NaoqiAnimationRequest("animations/Stand/Head/TurnLeftRight"))
     
+    def say_something(self, textje):
+        self.nao.tts.request(
+            NaoqiTextToSpeechRequest(f"\\vct=110\\ \\rspd=90\\ {textje}"))
+    
     def run_quiz(self):
         self.hello("Hello everyone! I am Nao your quiz host today!")
-        self.sleep(5)
         self.look_to_left_right("And this is my assistant ")
+        textperson1 = NaoListener.listen()
+        prompt1 = """You are 'QuizBot 3000', 
+        a sarcastic stand-up comedian robot with an edgy sense of humor,
+        you are making fun of the co-host in the quiz"""
+        respons1 = get_llm_response(textperson1, prompt1)
+        self.say_something(respons1)
+
 
 def main():
     quiz_master = NaoQuizMaster(nao_ip=NAO_IP)

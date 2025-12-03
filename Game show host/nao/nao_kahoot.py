@@ -790,6 +790,7 @@ class NaoQuizMaster(SICApplication):
 # MAIN - Entry Point
 # ============================================================================
 
+
 def main():
     print("\n" + "="*60)
     print("🎮 NAO KAHOOT QUIZ APPLICATION")

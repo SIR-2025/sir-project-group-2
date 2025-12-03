@@ -4,6 +4,9 @@ from nao_connection import connect_nao
 import time
 from nao_listener import NaoListener 
 from llm_integration import get_llm_response
+from llm_integration_groq import get_llm_response_groq
+from os.path import abspath, join
+from dotenv import load_dotenv
 
 from sic_framework.core.sic_application import SICApplication
 from sic_framework.core import sic_logging
@@ -25,14 +28,23 @@ import time
 
 NAO_IP = "10.0.0.137"
 SERVER_URL = "http://localhost:5000"
-nao = connect_nao("10.0.0.137")
-api = KahootAPI(SERVER_URL)
+GOOGLE_KEY = abspath(join("..", "..", "conf", "google", "google-key.json"))
+
+load_dotenv()
+
 
 class NaoQuizMaster():
 
     def __init__(self, nao_ip: str):
         self.nao_ip = nao_ip
-        self.nao = Nao(ip=NAO_IP)
+        # Gebruik ÉÉN NAO connectie
+        self.nao = Nao(ip=nao_ip)
+        
+        # Maak de listener met DEZELFDE nao connectie
+        self.listener = NaoListener(self.nao, GOOGLE_KEY, quiet=True)
+        
+        # API kan nog steeds globaal of hier
+        self.api = KahootAPI(SERVER_URL)
         
     def hello(self, textje):
         self.nao.tts.request(
@@ -55,12 +67,21 @@ class NaoQuizMaster():
     
     def run_quiz(self):
         self.hello("Hello everyone! I am Nao your quiz host today!")
-        self.look_to_left_right("And this is my assistant ")
-        textperson1 = NaoListener.listen()
+        #self.look_to_left_right("And this is my assistant ")
+        self.say_something("And this is my assistant ")
+        textperson1 = self.listener.listen()
+        if textperson1:
+            print(f"\n>>> You said: \"{textperson1}\"\n")
+        else:
+            print("(Nothing detected)\n")
+            return
+
+
+
         prompt1 = """You are 'QuizBot 3000', 
         a sarcastic stand-up comedian robot with an edgy sense of humor,
         you are making fun of the co-host in the quiz"""
-        respons1 = get_llm_response(textperson1, prompt1)
+        respons1 = get_llm_response_groq(textperson1, prompt1)
         self.say_something(respons1)
 
 

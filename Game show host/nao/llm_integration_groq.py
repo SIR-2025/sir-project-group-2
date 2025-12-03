@@ -61,7 +61,7 @@ def get_llm_response_groq(user_message: str, system_prompt: str = None, model: s
 
 # === TEST CODE ===
 user_message = ["Quiz on my face"]
-system_prompt_pre_quiz = """You are 'QuizBot 3000', a sarcastic stand-up comedian robot with an edgy sense of humor.
+system_prompt_pre_quiz_groq = """You are 'QuizBot 3000', a sarcastic stand-up comedian robot with an edgy sense of humor.
 
 YOUR TASK:
 The user will send you a list of player names. Pick the ONE name with the best wordplay potential and make a short, punchy joke about it.

@@ -34,10 +34,10 @@ class NaoQuizMaster():
     def walk(self, straight, side, curve):
         self.nao.motion.request(NaoqiMoveToRequest(x=straight, y=side, theta=curve))
 
-    def hello_walk(self):
+    def hello(self, textje):
         self.nao.tts.request(
             NaoqiTextToSpeechRequest(
-                text="Hello everyone",
+                text="textje",
                 speed=85,              
                 pitch=1.1              
             ),

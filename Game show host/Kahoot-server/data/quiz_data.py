@@ -24,36 +24,58 @@ QUIZ_TITLE = "Nao's Fun Quiz"
 QUESTIONS = [
     {
         "id": 0,
-        "text": "What is the capital of the Netherlands?",
+        "text": "What kind of appearance does the baymax robot have?",
         "options": [
-            "Amsterdam",
-            "Rotterdam",
-            "The Hague",
-            "Utrecht"
+            "animal-inspired familiair ",
+            "human-inspired humanoids",
+            "human-inspired geminoids",
+            "functional robot"
         ],
-        "correct_answer": 0  # Amsterdam (index 0)
+        "correct_answer": 1 # Amsterdam (index 0)
     },
     {
         "id": 1,
-        "text": "How many legs does a spider have?",
+        "text": "What does NAO stand for?",
         "options": [
-            "6 legs",
-            "8 legs",
-            "10 legs",
-            "12 legs"
+            "New Artificial Organism",
+            "Nano-AI Operator",
+            "Nanotechnology Advanced Operator",
+            "None of the above"
         ],
-        "correct_answer": 1  # 8 legs (index 1)
+        "correct_answer": 3 # Blue (index 2)
+    },
+        {
+        "id": 2,
+        "text": "How many coffee machines does utrecht university have? ☕️",
+        "options": [
+            "approximately 50",
+            "100",
+            "approximately 200",
+            "483"
+        ],
+        "correct_answer": 2  # Amsterdam (index 0)
     },
     {
-        "id": 2,
-        "text": "What color is the sky on a clear day?",
+        "id": 3,
+        "text": "Which job is a robot actually doing today?",
         "options": [
-            "Green",
-            "Red",
-            "Blue",
-            "Yellow"
+            "Some real funny creature",
+            "Barista",
+            "Quiz host",
+            "All of the above 😉"
         ],
-        "correct_answer": 2  # Blue (index 2)
+        "correct_answer": 3 # Blue (index 2)
+    },
+    {
+        "id": 4,
+        "text": "In which year was VU founded?",
+        "options": [
+            "1880",
+            "1632",
+            "1910",
+            "1842"
+        ],
+        "correct_answer": 0 # Blue (index 2)
     }
 ]
 

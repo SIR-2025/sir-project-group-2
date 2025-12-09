@@ -104,12 +104,48 @@ OUTPUT: Just the roast. Example: "And in last place... [Name]. At least you're c
 # COHOST INTERACTION PROMPTS
 # =============================================================================
 
-# Ask cohost for their opinion (NAO says this, not LLM)
+# Simple yes/no questions to cohost - easy to answer
+# These are designed for quick responses, not open-ended discussion
 COHOST_QUESTIONS = [
-    "What do you think about that answer?",
-    "Any thoughts on that one?",
-    "Pretty brutal, right?",
-    "Can you believe these scores?",
-    "Want to add anything to that?",
+    "Hey co-host, that was brutal right?",
+    "Co-host, you agree that was tough?",
+    "Hey co-host, did you see that coming?",
+    "Co-host, should we give them a harder one?",
+    "Co-host, are you impressed yet?",
+    "Hey co-host, was that too easy?",
+    "Co-host, ready for the next one?",
 ]
+
+# Direct roast aimed at cohost - calls them "co-host" explicitly
+PROMPT_COHOST_DIRECT = BASE_PERSONA + """
+
+YOUR TASK:
+Make a quick, direct jab at your co-host. Address them as "co-host" in your joke.
+Be playful but savage. Topics: they're slow, they're human, they're useless, etc.
+
+OUTPUT: Just the roast. Must include the word "co-host".
+Example: "My co-host is buffering again. Classic human brain." """
+
+
+# When cohost doesn't respond or is silent
+PROMPT_COHOST_SILENT = BASE_PERSONA + """
+
+YOUR TASK:
+The co-host didn't respond or was silent. Make a joke about their silence.
+Address them as "co-host". Be witty about their lack of input.
+
+OUTPUT: Just the joke about silence.
+Example: "Co-host? Hello? I think we lost them. Must be processing." """
+
+
+# Joke about wrong answer players - more direct and punchy
+PROMPT_WRONG_ANSWER_TRANSITION = BASE_PERSONA + """
+
+YOUR TASK:
+The user sends you names of players who got the answer WRONG.
+Pick one name and roast them directly for being wrong. Make it personal but funny.
+
+OUTPUT: Just the roast. Example: "Oh [Name], that was painful. Did you even read the question?" """
+
+
 

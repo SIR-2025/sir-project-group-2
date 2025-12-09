@@ -29,6 +29,7 @@ from sic_framework.devices.common_naoqi.naoqi_autonomous import (
 from server_connection import KahootAPI
 from nao_listener import NaoListener
 from llm_integration_groq import get_llm_response_groq
+from mic import NaoShowController
 from prompts import (
     PROMPT_PLAYER_NAMES,
     PROMPT_WRONG_ANSWER,
@@ -38,6 +39,9 @@ from prompts import (
     PROMPT_WINNER,
     PROMPT_LOSER,
     COHOST_QUESTIONS,
+    PROMPT_COHOST_DIRECT,
+    PROMPT_COHOST_SILENT,
+    PROMPT_WRONG_ANSWER_TRANSITION,
 )
 
 # Load environment variables (for GROQ_API_KEY)
@@ -95,6 +99,15 @@ class NaoQuizMaster:
         self.api = KahootAPI(server_url)
         print(f"[INIT] ✓ Server connected")
         
+        # Initialize show controller for mic pose and gestures
+        print(f"[INIT] Setting up show controller...")
+        self.show = NaoShowController(
+            nao=self.nao,
+            nao_ip=nao_ip,
+            auto_start_airborne_monitor=False
+        )
+        print(f"[INIT] ✓ Show controller ready")
+        
         # Joke rotation tracking
         # Cycles through: wrong_answer -> cohost -> audience
         self.joke_index = 0
@@ -135,6 +148,30 @@ class NaoQuizMaster:
         
         # Perform gesture (blocking)
         self.nao.motion.request(NaoqiAnimationRequest(animation))
+    
+    def say_with_mic(self, text: str, point_to_screen: bool = False, speed: int = 90, pitch: int = 110):
+        """
+        Make NAO speak while holding mic pose.
+        Optionally point to screen with free hand.
+        
+        Args:
+            text: Text to speak
+            point_to_screen: If True, point to screen with right hand
+            speed: Speech speed (default 90)
+            pitch: Voice pitch (default 110)
+        """
+        # Mic pose up (left hand holds imaginary mic)
+        self.show._mic_up()
+        
+        # Optional: point to screen with right hand
+        if point_to_screen:
+            self.show._look_screen()
+        
+        # Speak
+        self.say(text, speed=speed, pitch=pitch, block=True)
+        
+        # Mic pose down
+        self.show._mic_down()
     
     def listen_to_cohost(self) -> str:
         """
@@ -188,6 +225,7 @@ class NaoQuizMaster:
     def ask_cohost(self, question: str = None) -> str:
         """
         Ask cohost a question and generate LLM response to their answer.
+        Uses mic pose and looks at cohost.
         
         Args:
             question: Optional specific question. If None, picks random.
@@ -199,16 +237,21 @@ class NaoQuizMaster:
         if question is None:
             question = random.choice(COHOST_QUESTIONS)
         
-        # Ask the question
+        # Look at cohost and ask with mic pose
+        self.show._look_cohost()
         print(f"[COHOST] NAO asks: {question}")
-        self.say(question)
+        self.say_with_mic(question)
         
         # Listen to cohost response
         cohost_response = self.listen_to_cohost()
         
         if not cohost_response:
-            # No response, make a joke about it
-            return "Okay, silent treatment. I see how it is."
+            # No response - generate silence joke
+            silence_joke = get_llm_response_groq(
+                "The co-host didn't respond",
+                PROMPT_COHOST_SILENT
+            )
+            return silence_joke
         
         # Generate comeback using LLM
         comeback = get_llm_response_groq(cohost_response, PROMPT_COHOST_REACT)
@@ -239,12 +282,46 @@ class NaoQuizMaster:
             # Ask cohost for input
             print("[COHOST] Asking cohost for input...")
             comeback = self.ask_cohost()
-            self.say(comeback)
+            self.say_with_mic(comeback)
         else:
-            # Just roast the cohost (no input needed)
-            print("[COHOST] Roasting cohost...")
-            joke = self.make_joke("cohost", "Make a quick jab at the human co-host")
-            self.say(joke)
+            # Just roast the cohost directly (no input needed)
+            print("[COHOST] Roasting cohost directly...")
+            self.roast_cohost_direct()
+    
+    def roast_cohost_direct(self):
+        """
+        Make a direct joke about the cohost, addressing them as "co-host".
+        Uses mic pose and looks at cohost direction.
+        """
+        print("[COHOST] Direct roast at co-host...")
+        
+        # Look at cohost direction
+        self.show._look_cohost()
+        
+        # Generate direct roast using LLM
+        joke = get_llm_response_groq(
+            "Make a direct jab at the co-host",
+            PROMPT_COHOST_DIRECT
+        )
+        
+        # Deliver with mic pose
+        self.say_with_mic(joke)
+        print(f"[COHOST] Said: {joke}")
+    
+    def joke_about_silent_cohost(self):
+        """
+        Make a joke when cohost doesn't respond.
+        """
+        print("[COHOST] Cohost is silent, making joke...")
+        
+        # Generate silence joke
+        joke = get_llm_response_groq(
+            "The co-host didn't respond",
+            PROMPT_COHOST_SILENT
+        )
+        
+        self.say_with_mic(joke)
+        print(f"[COHOST] Silent joke: {joke}")
     
     # =========================================================================
     # GAME PHASES
@@ -255,10 +332,11 @@ class NaoQuizMaster:
         Phase 1: Opening with cohost interaction.
         
         Flow:
-        1. NAO introduces himself
-        2. NAO introduces cohost as "assistant"
+        1. NAO introduces himself with mic pose
+        2. NAO introduces cohost as "assistant" with direct jab
         3. Listen to cohost response
-        4. NAO makes LLM-generated sarcastic comeback
+        4. NAO makes LLM-generated sarcastic comeback (or silence joke)
+        5. Extra cohost roast for fun
         """
         print("\n" + "="*60)
         print("PHASE: INTRO")
@@ -273,31 +351,36 @@ class NaoQuizMaster:
         
         time.sleep(1)
         
-        # 2. NAO introduces cohost (gesture to the side)
+        # 2. NAO introduces cohost with a jab
         print("[INTRO] NAO introduces cohost...")
-        self.say_with_gesture(
-            "And this is my assistant",
-            animation="animations/Stand/Gestures/ShowSky_2"
+        self.show._look_cohost()
+        self.say_with_mic(
+            "And this is my co-host. They're here for... moral support, I guess."
         )
+        
+        time.sleep(0.5)
         
         # 3. Listen to cohost response
         cohost_response = self.listen_to_cohost()
         
         if not cohost_response:
-            print("[INTRO] No cohost response, continuing anyway...")
-            self.say("Right... anyway, let's continue!")
-            return
+            # Cohost didn't respond - make a joke about it
+            print("[INTRO] No cohost response, making silence joke...")
+            self.joke_about_silent_cohost()
+        else:
+            # 4. Generate sarcastic comeback using LLM
+            print("[INTRO] Generating LLM response...")
+            comeback = get_llm_response_groq(cohost_response, PROMPT_COHOST_REACT)
+            
+            # NAO delivers comeback with mic pose
+            print(f"[INTRO] NAO says comeback: {comeback}")
+            self.say_with_mic(comeback)
         
-        # 4. Generate sarcastic comeback using LLM
-        print("[INTRO] Generating LLM response...")
-        llm_prompt = """You are 'QuizBot 3000', a sarcastic stand-up comedian robot with an edgy sense of humor.
-You are making fun of the co-host in the quiz. Keep it short and punchy (max 2 sentences, max 50 tokens)."""
+        time.sleep(1)
         
-        comeback = get_llm_response_groq(cohost_response, llm_prompt)
-        
-        # 5. NAO delivers comeback
-        print(f"[INTRO] NAO says comeback: {comeback}")
-        self.say(comeback)
+        # 5. Extra direct roast at cohost for fun
+        print("[INTRO] Extra cohost roast...")
+        self.roast_cohost_direct()
         
         time.sleep(1)
         print("[INTRO] ✓ Intro phase complete\n")
@@ -307,13 +390,11 @@ You are making fun of the co-host in the quiz. Keep it short and punchy (max 2 s
         Phase 2: Wait for players to join and make jokes.
         
         Flow:
-        1. NAO tells people to join via QR code
+        1. NAO tells people to join via QR code (points to screen)
         2. Loop: check player count every 5 seconds
-        3. When halfway to minimum: make LLM joke about player name
-        4. When minimum reached: continue to quiz
-        
-        TODO: Add walking/gaze behavior from mic.py here
-        TODO: Add check for offensive usernames
+        3. Make jokes about player names as they join
+        4. Interact with cohost if waiting too long
+        5. When minimum reached: continue to quiz
         """
         print("\n" + "="*60)
         print("PHASE: WAITING FOR PLAYERS")
@@ -323,17 +404,22 @@ You are making fun of the co-host in the quiz. Keep it short and punchy (max 2 s
         print("[PLAYERS] Resetting quiz...")
         self.api.reset_quiz()
         
-        # 1. Instructions to join
+        # 1. Instructions to join (point to screen)
         print("[PLAYERS] NAO gives instructions...")
-        self.say("Get your phones ready and join the game by scanning the QR code on the screen!")
+        self.say_with_mic(
+            "Get your phones ready and join the game by scanning the QR code on the screen!",
+            point_to_screen=True
+        )
         
         time.sleep(1)
-        self.say("Type in your name. Don't worry, I don't judge your username choices... much.")
+        self.say_with_mic("Type in your name. Don't worry, I don't judge your username choices... much.")
         
         # 2. Wait for players to join
         print(f"[PLAYERS] Waiting for {self.minimum_players} players...")
         
-        joke_made = False  # Track if we already made a joke
+        jokes_made = 0  # Track how many jokes we made
+        wait_cycles = 0  # Track how long we've been waiting
+        last_player_count = 0
         
         while True:
             # Get current player status
@@ -347,29 +433,49 @@ You are making fun of the co-host in the quiz. Keep it short and punchy (max 2 s
                 print(f"[PLAYERS] ✓ Minimum players reached!")
                 break
             
-            # Make joke when halfway there (only once)
-            if not joke_made and player_count >= self.minimum_players / 2 and player_count > 0:
-                print("[PLAYERS] Halfway there! Making joke about player names...")
-                
-                # Get player names
+            # New player joined - make a joke about their name
+            if player_count > last_player_count and player_count > 0:
+                print("[PLAYERS] New player joined! Making joke...")
                 player_names = self.api.get_players()
                 
                 if player_names:
-                    # Generate LLM joke about the names
-                    player_names_str = str(player_names)
-                    joke = get_llm_response_groq(player_names_str, PROMPT_PLAYER_NAMES)
-                    
-                    print(f"[PLAYERS] NAO makes joke: {joke}")
-                    self.say(joke)
-                    
-                    joke_made = True
+                    # Get the newest player (last in list)
+                    newest_name = player_names[-1] if player_names else "someone"
+                    joke = get_llm_response_groq(
+                        f"New player just joined with name: {newest_name}",
+                        PROMPT_PLAYER_NAMES
+                    )
+                    self.say_with_mic(joke)
+                    jokes_made += 1
+                
+                last_player_count = player_count
+            
+            # If waiting too long (every 3 cycles = 15 sec), interact with cohost
+            wait_cycles += 1
+            if wait_cycles % 3 == 0 and wait_cycles > 0:
+                print("[PLAYERS] Waiting long, talking to cohost...")
+                self.show._look_cohost()
+                # Simple yes/no question - easier for cohost to answer
+                self.say_with_mic("Hey co-host, they're taking a while right?")
+                
+                # Listen for cohost response
+                response = self.listen_to_cohost()
+                if response:
+                    comeback = get_llm_response_groq(response, PROMPT_COHOST_REACT)
+                    self.say_with_mic(comeback)
+                else:
+                    self.joke_about_silent_cohost()
             
             # Wait before checking again
             time.sleep(5)
         
-        # All players joined
+        # All players joined - celebrate
         print("[PLAYERS] All players joined!")
-        self.say("Great! Everyone is here. Let's get started!")
+        self.say_with_mic("Great! Everyone is here. Let's get started!")
+        
+        # Quick cohost jab before starting - no response needed
+        self.show._look_cohost()
+        self.say_with_mic("Let's go co-host! Try to keep up this time.")
         
         time.sleep(1)
         print("[PLAYERS] ✓ Wait for players phase complete\n")
@@ -394,7 +500,7 @@ You are making fun of the co-host in the quiz. Keep it short and punchy (max 2 s
         print("[QUIZ] Starting quiz...")
         self.api.start_quiz()
         
-        self.say("Alright! Let's begin. Get ready... focus... okay maybe a little pressure.")
+        self.say_with_mic("Alright! Let's begin. Get ready... focus... okay maybe a little pressure.")
         time.sleep(1)
         
         # Get initial status to know total questions
@@ -411,18 +517,22 @@ You are making fun of the co-host in the quiz. Keep it short and punchy (max 2 s
             print(f"\n--- QUESTION {question_num}/{total_questions} ---")
             
             # Get current question from status
+            # Note: "current_question" is the index (int), "current_question_data" is the dict
             status = self.api.get_status()
-            current_question = status.get("current_question", {})
+            current_question = status.get("current_question_data", {})
             
             # Check if quiz is finished
             if status.get("phase") == "finished":
                 quiz_finished = True
                 break
             
-            # 1. Read the question aloud
-            question_text = current_question.get("question", f"Question {question_num}")
+            # 1. Read the question aloud with mic pose
+            # NOTE: Server returns "text" field, not "question"
+            question_text = current_question.get("text", f"Question {question_num}")
             print(f"[QUIZ] Question: {question_text}")
-            self.say(f"Question {question_num}. {question_text}")
+            
+            # Point to screen while reading question
+            self.say_with_mic(f"Question {question_num}. {question_text}", point_to_screen=True)
             
             time.sleep(1)
             
@@ -430,13 +540,13 @@ You are making fun of the co-host in the quiz. Keep it short and punchy (max 2 s
             print("[QUIZ] Revealing options...")
             self.api.reveal_options()
             
-            # Read options aloud
+            # Read options aloud with mic pose
             options = current_question.get("options", [])
             if options:
                 options_text = ". ".join([f"{chr(65+i)}, {opt}" for i, opt in enumerate(options)])
-                self.say(options_text)
+                self.say_with_mic(options_text, point_to_screen=True)
             
-            self.say("Answer now!")
+            self.say_with_mic("Answer now!")
             
             # 3. Wait for answers (poll until time's up or all answered)
             print("[QUIZ] Waiting for answers...")
@@ -448,7 +558,7 @@ You are making fun of the co-host in the quiz. Keep it short and punchy (max 2 s
             
             if result:
                 correct = result.get("correct_answer", "A")
-                self.say(f"Time's up! The correct answer is... {correct}!")
+                self.say_with_mic(f"Time's up! The correct answer is... {correct}!", point_to_screen=True)
                 time.sleep(1)
                 
                 # 5. Make a joke (rotating type)
@@ -462,7 +572,7 @@ You are making fun of the co-host in the quiz. Keep it short and punchy (max 2 s
             
             if leaderboard and len(leaderboard) > 0:
                 leader = leaderboard[0]
-                self.say(f"In the lead: {leader['name']} with {leader['score']} points!")
+                self.say_with_mic(f"In the lead: {leader['name']} with {leader['score']} points!", point_to_screen=True)
             
             time.sleep(2)
             
@@ -509,39 +619,49 @@ You are making fun of the co-host in the quiz. Keep it short and punchy (max 2 s
     
     def _do_joke_for_question(self, result: dict):
         """
-        Make a joke based on rotating joke type.
+        Make jokes during answer reveal transition.
+        
+        Flow:
+        1. ALWAYS make a joke about wrong answer players (if any)
+        2. Then do rotating cohost/audience interaction
         
         Args:
             result: The answer result from show_answers API
         """
-        # Get next joke type in rotation
-        joke_type = self.get_next_joke_type()
+        # 1. ALWAYS joke about wrong answer players first
+        wrong_players = result.get("wrong_players", [])
         
-        print(f"[JOKE] Joke type for this round: {joke_type}")
-        
-        if joke_type == "wrong_answer":
-            # Get names of players who got it wrong
-            wrong_players = result.get("wrong_players", [])
+        if wrong_players:
+            print("[JOKE] Making joke about wrong answer players...")
+            names_str = ", ".join(wrong_players[:3])
             
-            if wrong_players:
-                # Pick one or a few names for the joke
-                names_str = ", ".join(wrong_players[:3])
-                joke = self.make_joke("wrong_answer", f"Players who got it wrong: {names_str}")
-                self.say(joke)
-            else:
-                # Everyone got it right - make audience joke instead
-                self.say("Wait, everyone got that right? I'm impressed... and suspicious.")
+            # Use the transition-specific prompt for wrong answers
+            joke = get_llm_response_groq(
+                f"Players who got it wrong: {names_str}",
+                PROMPT_WRONG_ANSWER_TRANSITION
+            )
+            self.say_with_mic(joke)
+            time.sleep(1)
+        else:
+            # Everyone got it right - be impressed
+            self.say_with_mic("Wait, everyone got that right? I'm impressed... and suspicious.")
+            time.sleep(1)
         
-        elif joke_type == "cohost":
-            # Cohost moment - alternates between asking and roasting
+        # 2. Rotating interaction: cohost or audience
+        # Simplified rotation: alternates cohost and audience (no wrong_answer since we do that above)
+        self.joke_index += 1
+        
+        if self.joke_index % 2 == 0:
+            # Cohost moment - direct roast or ask
+            print("[JOKE] Cohost interaction...")
             self.do_cohost_moment()
-        
-        elif joke_type == "audience":
-            # Joke about the whole group
+        else:
+            # Audience/group joke
+            print("[JOKE] Audience joke...")
             distribution = result.get("distribution", {})
             context = f"Answer distribution: {distribution}"
             joke = self.make_joke("audience", context)
-            self.say(joke)
+            self.say_with_mic(joke)
     
     def phase_finale(self):
         """
@@ -562,15 +682,15 @@ You are making fun of the co-host in the quiz. Keep it short and punchy (max 2 s
         leaderboard = self.api.show_leaderboard()
         
         if not leaderboard or len(leaderboard) == 0:
-            self.say("Well, that was fun! Thanks for playing!")
+            self.say_with_mic("Well, that was fun! Thanks for playing!")
             return
         
         # 1. Build tension
         print("[FINALE] Building tension...")
-        self.say("Alright everyone... the moment you've been waiting for...")
+        self.say_with_mic("Alright everyone... the moment you've been waiting for...")
         time.sleep(2)
         
-        self.say("Let's see who proved they're NOT completely hopeless at trivia!")
+        self.say_with_mic("Let's see who proved they're NOT completely hopeless at trivia!")
         time.sleep(1)
         
         # 2. Announce winner
@@ -584,14 +704,14 @@ You are making fun of the co-host in the quiz. Keep it short and punchy (max 2 s
         winner_context = f"Winner is {winner_name} with {winner_score} points"
         winner_joke = self.make_joke("winner", winner_context)
         
-        self.say("And the winner is...")
+        self.say_with_mic("And the winner is...")
         time.sleep(2)
         self.say_with_gesture(
             f"{winner_name}! With {winner_score} points!",
             animation="animations/Stand/Gestures/Enthusiastic_4"
         )
         time.sleep(1)
-        self.say(winner_joke)
+        self.say_with_mic(winner_joke)
         
         time.sleep(2)
         
@@ -607,26 +727,29 @@ You are making fun of the co-host in the quiz. Keep it short and punchy (max 2 s
             loser_context = f"Last place is {loser_name} with {loser_score} points"
             loser_joke = self.make_joke("loser", loser_context)
             
-            self.say("And in last place...")
+            self.say_with_mic("And in last place...")
             time.sleep(1)
-            self.say(f"{loser_name} with {loser_score} points.")
+            self.say_with_mic(f"{loser_name} with {loser_score} points.")
             time.sleep(1)
-            self.say(loser_joke)
+            self.say_with_mic(loser_joke)
         
         time.sleep(2)
         
         # 4. Ask cohost for closing words
         print("[FINALE] Asking cohost for closing words...")
-        self.say("Any final words for our players?")
+        self.show._look_cohost()
+        # Simple question - easier for cohost to respond to
+        self.say_with_mic("Hey co-host, that was fun right?")
         
         cohost_response = self.listen_to_cohost()
         
         if cohost_response:
             # React to cohost
             comeback = get_llm_response_groq(cohost_response, PROMPT_COHOST_REACT)
-            self.say(comeback)
+            self.say_with_mic(comeback)
         else:
-            self.say("Nothing? Okay, I'll do all the work as usual.")
+            # Cohost didn't respond - make a joke about it
+            self.joke_about_silent_cohost()
         
         time.sleep(1)
         

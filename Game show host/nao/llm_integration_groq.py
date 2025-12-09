@@ -88,3 +88,59 @@ Your Output: "Mike Hunt is here! Anyone else having trouble saying that with a s
 #user_message_str = str(user_message)
 #response = get_llm_response_groq(user_message_str, system_prompt_pre_quiz)
 #print(f"Response: {response}")
+
+
+def stream_llm_response_to_nao(
+    nao_quiz_master,
+    user_message: str,
+    system_prompt: str = None,
+    model: str = "llama-3.1-8b-instant"
+) -> str:
+    """
+    Stream LLM response from Groq and let NAO start talking earlier.
+    `nao_quiz_master` is your NaoQuizMaster instance (for .say()).
+    Returns the full generated text.
+    """
+    try:
+        client = Groq()
+
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": user_message})
+
+        print(f"[LLM] Streaming request to Groq {model}...")
+        stream = client.chat.completions.create(
+            model=model,
+            messages=messages,
+            temperature=0.8,
+            max_tokens=50,
+            stream=True,   # ← key change
+        )
+
+        full_text = ""
+        buffer = ""
+
+        for chunk in stream:
+            delta = chunk.choices[0].delta.content or ""
+            if not delta:
+                continue
+
+            full_text += delta
+            buffer += delta
+
+            # When buffer is big enough or reaches a sentence end, speak it
+            if len(buffer) > 20 or any(p in buffer for p in [".", "!", "?"]):
+                nao_quiz_master.say(buffer, block=False)
+                buffer = ""
+
+        # Flush remaining text at the end
+        if buffer.strip():
+            nao_quiz_master.say(buffer, block=False)
+
+        print(f"[LLM] Streaming complete: {len(full_text)} characters")
+        return full_text
+
+    except Exception as e:
+        print(f"[LLM] Streaming error: {str(e)}")
+        return f"Error: Could not stream response from LLM - {str(e)}"

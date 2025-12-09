@@ -306,7 +306,7 @@ class NaoQuizMaster:
             return silence_joke
         
         # Generate comeback using LLM
-        comeback = get_llm_response_groq(cohost_response, PROMPT_COHOST_REACT)
+        comeback = stream_llm_response_to_nao(cohost_response, PROMPT_COHOST_REACT)
         
         return comeback
     

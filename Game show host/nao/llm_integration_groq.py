@@ -129,15 +129,19 @@ def stream_llm_response_to_nao(
             full_text += delta
             buffer += delta
 
-            # When buffer is big enough or reaches a sentence end, speak it
-            if len(buffer) > 20 or any(p in buffer for p in [".", "!", "?"]):
-                nao_quiz_master.say(buffer, block=False)
+            # Only speak when we’ve reached a sentence boundary
+            if any(p in buffer for p in [".", "!", "?"]) and len(buffer) > 25:
+                nao_quiz_master.say(buffer.strip(), block=True)
                 buffer = ""
 
-        # Flush remaining text at the end
+        # At end, if there's something left without punctuation, say it
         if buffer.strip():
-            nao_quiz_master.say(buffer, block=False)
+            nao_quiz_master.say(buffer.strip(), block=True)
 
+                # Flush remaining text at the end
+
+
+        print("HOI")
         print(f"[LLM] Streaming complete: {len(full_text)} characters")
         return full_text
 

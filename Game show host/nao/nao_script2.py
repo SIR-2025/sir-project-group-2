@@ -36,6 +36,7 @@ class RunQuiz():
         you are making fun of the co-host in the quiz"""
         respons1 = get_llm_response_groq(textperson1, prompt1)
         naofunctions.say_something(respons1)
+        
 
 def main():
     quiz_master = RunQuiz(nao_ip=NAO_IP)

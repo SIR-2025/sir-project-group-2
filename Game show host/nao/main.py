@@ -152,6 +152,7 @@ class NaoQuizMaster:
     def say_with_mic(self, text: str, point_to_screen: bool = False, speed: int = 90, pitch: int = 110):
         """
         Make NAO speak while holding mic pose.
+        NOTE: Mic is held UP for the entire show (no up/down per call).
         Optionally point to screen with free hand.
         
         Args:
@@ -160,18 +161,69 @@ class NaoQuizMaster:
             speed: Speech speed (default 90)
             pitch: Voice pitch (default 110)
         """
-        # Mic pose up (left hand holds imaginary mic)
-        self.show._mic_up()
-        
-        # Optional: point to screen with right hand
+        # Point to screen with RIGHT arm (left arm stays in mic pose)
         if point_to_screen:
+            self.show._point_to_screen(duration=0.4)
             self.show._look_screen()
         
-        # Speak
+        # Speak (blocking)
         self.say(text, speed=speed, pitch=pitch, block=True)
         
-        # Mic pose down
+        # Return right arm to neutral if we pointed
+        if point_to_screen:
+            self.show._arm_neutral(duration=0.3)
+    
+    def start_mic_pose(self):
+        """
+        Start mic pose for the entire show.
+        Call this once at the beginning.
+        - Puts left arm in mic position
+        - Disables left arm swing during walking
+        """
+        print("[MIC] Starting mic pose for show...")
+        self.show._mic_up()
+        self.show._set_walk_arm_swing(False, True)  # Left arm fixed, right arm free
+        print("[MIC] ✓ Mic pose active")
+    
+    def end_mic_pose(self):
+        """
+        End mic pose at the end of the show.
+        - Returns left arm to neutral
+        - Re-enables arm swing
+        """
+        print("[MIC] Ending mic pose...")
         self.show._mic_down()
+        self.show._set_walk_arm_swing(True, True)  # Both arms free
+        print("[MIC] ✓ Mic pose ended")
+    
+    def say_with_pacing(self, text: str, point_to_screen: bool = False, speed: int = 90, pitch: int = 110):
+        """
+        Make NAO speak while doing small pacing movement.
+        Good for longer speeches to add dynamism.
+        Stays in same area (small side steps, returns to start).
+        
+        Args:
+            text: Text to speak
+            point_to_screen: If True, point to screen first
+            speed: Speech speed (default 90)
+            pitch: Voice pitch (default 110)
+        """
+        import threading
+        
+        # Point to screen first if needed
+        if point_to_screen:
+            self.show._point_to_screen(duration=0.4)
+            self.show._look_screen()
+        
+        # Start speech (non-blocking) so we can pace while talking
+        self.say(text, speed=speed, pitch=pitch, block=False)
+        
+        # Do small pacing in parallel with speech
+        self.show.pace_small_circle(steps=2, step_size=0.12)
+        
+        # Return arm to neutral if we pointed
+        if point_to_screen:
+            self.show._arm_neutral(duration=0.3)
     
     def listen_to_cohost(self) -> str:
         """
@@ -349,13 +401,15 @@ class NaoQuizMaster:
             animation="animations/Stand/Gestures/Hey_1"
         )
         
-        time.sleep(1)
+        
+        # Start mic pose AFTER the gesture (gestures cancel arm positions)
+        self.start_mic_pose()
         
         # 2. NAO introduces cohost with a jab
         print("[INTRO] NAO introduces cohost...")
         self.show._look_cohost()
         self.say_with_mic(
-            "And this is my co-host. They're here for... moral support, I guess."
+            "And this is my assistant. They're here for... moral support, I guess."
         )
         
         time.sleep(0.5)
@@ -546,7 +600,6 @@ class NaoQuizMaster:
                 options_text = ". ".join([f"{chr(65+i)}, {opt}" for i, opt in enumerate(options)])
                 self.say_with_mic(options_text, point_to_screen=True)
             
-            self.say_with_mic("Answer now!")
             
             # 3. Wait for answers (poll until time's up or all answered)
             print("[QUIZ] Waiting for answers...")
@@ -557,8 +610,10 @@ class NaoQuizMaster:
             result = self.api.show_answers()
             
             if result:
-                correct = result.get("correct_answer", "A")
-                self.say_with_mic(f"Time's up! The correct answer is... {correct}!", point_to_screen=True)
+                # Use letter + text for readable answer (e.g., "A, Amsterdam")
+                letter = result.get("correct_answer_letter", "A")
+                text = result.get("correct_answer_text", "")
+                self.say_with_mic(f"Time's up! The correct answer is... {letter}, {text}!", point_to_screen=True)
                 time.sleep(1)
                 
                 # 5. Make a joke (rotating type)
@@ -590,12 +645,14 @@ class NaoQuizMaster:
     
     def _wait_for_answers(self, timeout: int = 30, poll_interval: int = 2):
         """
-        Wait for all players to answer or timeout.
+        Wait for all players to answer or timeout (max 30 sec).
+        After timeout, moves on even if not everyone answered.
         
         Args:
-            timeout: Max seconds to wait
-            poll_interval: Seconds between checks
+            timeout: Max seconds to wait (default 30)
+            poll_interval: Seconds between checks (default 2)
         """
+        print(f"[QUIZ] Waiting for answers (max {timeout}s)...")
         elapsed = 0
         
         while elapsed < timeout:
@@ -604,18 +661,20 @@ class NaoQuizMaster:
             if results:
                 answered = results.get("answered_count", 0)
                 total = results.get("total_players", 1)
+                remaining = timeout - elapsed
                 
-                print(f"[QUIZ] Answers: {answered}/{total}")
+                print(f"[QUIZ] Answers: {answered}/{total} ({remaining}s left)")
                 
-                # All players answered
+                # All players answered - done early
                 if answered >= total:
-                    print("[QUIZ] All players answered!")
+                    print("[QUIZ] ✓ All players answered!")
                     return
             
             time.sleep(poll_interval)
             elapsed += poll_interval
         
-        print("[QUIZ] Timeout reached")
+        # Timeout reached - move on anyway
+        print(f"[QUIZ] ⏱ Timeout ({timeout}s) - moving on")
     
     def _do_joke_for_question(self, result: dict):
         """
@@ -787,6 +846,9 @@ class NaoQuizMaster:
             self.nao.motion.request(NaoPostureRequest("Stand", 0.7))
             time.sleep(2)
             
+            # NOTE: Mic pose starts INSIDE phase_intro() after the Hey gesture
+            # (gestures cancel arm positions, so we do mic pose after)
+            
             # Run all phases in sequence
             self.phase_intro()
             self.phase_wait_for_players()
@@ -806,8 +868,15 @@ class NaoQuizMaster:
             traceback.print_exc()
         
         finally:
+            # End mic pose before rest
+            print("\n[CLEANUP] Ending mic pose...")
+            try:
+                self.end_mic_pose()
+            except:
+                pass
+            
             # Put NAO to rest
-            print("\n[CLEANUP] Putting NAO to rest...")
+            print("[CLEANUP] Putting NAO to rest...")
             try:
                 self.nao.autonomous.request(NaoRestRequest())
             except:

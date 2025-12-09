@@ -340,6 +340,93 @@ class NaoShowController(object):
             print(f"[NaoShowController] ERROR in mic_down(): {e}")
 
     # ------------------------------------------------------------------
+    # Right arm pointing (while left arm holds mic)
+    # ------------------------------------------------------------------
+    def _point_to_screen(self, duration: float = 0.5):
+        """
+        Point to screen with RIGHT arm while left arm stays in mic pose.
+        Uses direct joint control for speed.
+        """
+        print("[NAO] point_to_screen()")
+        if self.test_mode or self.motion_service is None:
+            print("[NaoShowController] point_to_screen(): TEST_MODE or no ALMotion")
+            return
+        try:
+            # Right arm joints: RShoulderPitch, RShoulderRoll, RElbowYaw, RElbowRoll, RWristYaw
+            # Pointing forward-right pose (arm extended toward screen)
+            names = ["RShoulderPitch", "RShoulderRoll", "RElbowYaw", "RElbowRoll"]
+            # Shoulder pitch ~0.3 (arm up), roll ~-0.3 (out), elbow extended
+            angles = [0.3, -0.3, 1.0, 0.3]
+            times = [duration] * len(names)
+            
+            self.motion_service.setStiffnesses("RArm", 1.0)
+            self.motion_service.angleInterpolation(names, angles, times, True)
+        except Exception as e:
+            print(f"[NaoShowController] ERROR in point_to_screen: {e}")
+    
+    def _arm_neutral(self, duration: float = 0.4):
+        """
+        Return RIGHT arm to neutral position (relaxed at side).
+        """
+        print("[NAO] arm_neutral()")
+        if self.test_mode or self.motion_service is None:
+            print("[NaoShowController] arm_neutral(): TEST_MODE or no ALMotion")
+            return
+        try:
+            # Neutral standing pose for right arm
+            names = ["RShoulderPitch", "RShoulderRoll", "RElbowYaw", "RElbowRoll"]
+            angles = [1.4, -0.15, 1.2, 0.5]  # Relaxed at side
+            times = [duration] * len(names)
+            
+            self.motion_service.angleInterpolation(names, angles, times, True)
+        except Exception as e:
+            print(f"[NaoShowController] ERROR in arm_neutral: {e}")
+
+    # ------------------------------------------------------------------
+    # Small pacing (stay in same area)
+    # ------------------------------------------------------------------
+    def pace_small_circle(self, steps: int = 2, step_size: float = 0.15):
+        """
+        Small pacing movement: step left, step right, back to center.
+        Stays within a small area (~30cm circle).
+        
+        Args:
+            steps: Number of side steps each direction
+            step_size: Size of each step in meters (default 0.15m = 15cm)
+        """
+        print(f"[NAO] pace_small_circle(steps={steps}, step_size={step_size})")
+        if self.test_mode or self.motion_service is None:
+            print("[NaoShowController] pace_small_circle(): TEST_MODE or no ALMotion")
+            return
+        
+        if self._airborne_state:
+            print("[NaoShowController] pace_small_circle(): airborne, skipping")
+            return
+        
+        try:
+            # Step sideways left
+            for _ in range(steps):
+                if self._airborne_state:
+                    break
+                self.motion_service.moveTo(0.0, step_size, 0.0)
+            
+            # Step sideways right (back through center to other side)
+            for _ in range(steps * 2):
+                if self._airborne_state:
+                    break
+                self.motion_service.moveTo(0.0, -step_size, 0.0)
+            
+            # Step back to center
+            for _ in range(steps):
+                if self._airborne_state:
+                    break
+                self.motion_service.moveTo(0.0, step_size, 0.0)
+                
+            print("[NAO] pace_small_circle() complete - back at start")
+        except Exception as e:
+            print(f"[NaoShowController] ERROR in pace_small_circle: {e}")
+
+    # ------------------------------------------------------------------
     # Arm swing control for walking
     # ------------------------------------------------------------------
     def _set_walk_arm_swing(self, left: bool, right: bool):

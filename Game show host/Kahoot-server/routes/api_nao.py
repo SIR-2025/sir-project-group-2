@@ -75,18 +75,33 @@ def show_answers():
     if not question:
         return jsonify({"error": "No active question"}), 400
 
-    # Calculate scores for this question
+    correct_idx = question["correct_answer"]
+    correct_players = []
+    wrong_players = []
+
+    # Calculate scores and track correct/wrong players
     for player_id, answer_data in quiz_state["current_answers"].items():
-        is_correct = answer_data["answer"] == question["correct_answer"]
+        is_correct = answer_data["answer"] == correct_idx
         points = calculate_score(answer_data["time"], is_correct)
         quiz_state["player_scores"][player_id] = quiz_state["player_scores"].get(player_id, 0) + points
+
+        # Track player names for NAO jokes
+        player_name = quiz_state["players"].get(player_id, {}).get("name", "Unknown")
+        if is_correct:
+            correct_players.append(player_name)
+        else:
+            wrong_players.append(player_name)
 
     quiz_state["phase"] = PHASE_RESULTS
 
     return jsonify({
         "success": True,
         "distribution": get_answer_distribution(),
-        "correct_answer": question["correct_answer"]
+        "correct_answer": correct_idx,
+        "correct_answer_letter": chr(65 + correct_idx),  # A, B, C, or D
+        "correct_answer_text": question["options"][correct_idx],
+        "correct_players": correct_players,
+        "wrong_players": wrong_players
     })
 
 

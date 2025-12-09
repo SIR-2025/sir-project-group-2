@@ -24,7 +24,6 @@ class NaoQuizMaster():
         self.nao_ip = nao_ip
         self.nao = Nao(ip=NAO_IP)
         
-
     def stand_up(self):
         self.nao.motion.request(NaoPostureRequest("Stand", 0.5))
 

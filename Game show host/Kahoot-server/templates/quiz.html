@@ -25,7 +25,12 @@
         <div class="question-display">
             <div class="question-badge">Question <span id="q-number">1</span> / {{ total_questions }}</div>
             <h2 id="question-text" class="big-question">Loading question...</h2>
-        </div>
+            <div id="baymax-gif" class="baymax-gif">
+                <img src="https://i.imgur.com/ek0GYKI.gif" alt="baymax gif">
+            </div>
+            <div id="vu-logo" class="vu-logo">
+                <img src="https://brandportal.vu.nl/public/app/pl?plc=7svqiOE6yLMf%2BjzgqYj9TUDekaGz%2FaDe6iD%2FbOkxh5XwT0d1Q6snZGfb8UdWP%2FwA" alt="vu logo">
+            </div>
     </div>
 
     <!-- Answering Screen (options visible) -->
@@ -141,6 +146,23 @@
                     currentPhase = data.phase;
                     currentQuestion = data.current_question;
                     
+                    const baymaxGif = document.getElementById('baymax-gif');
+                    if (baymaxGif) {
+                        if (currentQuestion === 0 && currentPhase === 'question') {
+                            baymaxGif.style.display = 'block';
+                        } else {
+                            baymaxGif.style.display = 'none';
+                        }
+                    }
+                    const Vulogo = document.getElementById('vu-logo');
+                    if (baymaxGif) {
+                        if (currentQuestion === 4 && currentPhase === 'question') {
+                            Vulogo.style.display = 'block';
+                        } else {
+                            Vulogo.style.display = 'none';
+                        }
+                    }
+
                     if (data.phase === 'waiting') {
                         showScreen('waiting');
                     } else if (data.phase === 'question') {

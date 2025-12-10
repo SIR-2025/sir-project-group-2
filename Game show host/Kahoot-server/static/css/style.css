@@ -322,6 +322,19 @@ body {
     margin-top: var(--spacing-md);
 }
 
+.baymax-gif {
+    display: none;
+    text-align: center; /* optional */
+    margin-top: 20px;
+}
+
+.vu-logo img {
+    width: 300px;    /* adjust this value as needed */
+    height: auto;    /* keeps the aspect ratio */
+    display: block;  /* centers if parent has text-align:center */
+    margin: 0 auto;  /* centers the image horizontally */
+}
+
 /* ============================================================================
    LEADERBOARD
    ============================================================================ */

@@ -28,7 +28,7 @@ from sic_framework.devices.common_naoqi.naoqi_autonomous import (
 # Local imports
 from server_connection import KahootAPI
 from nao_listener import NaoListener
-from llm_integration_groq import get_llm_response_groq
+from llm_integration_groq import get_llm_response_groq, stream_llm_response_to_nao
 from mic import NaoShowController
 from prompts import (
     PROMPT_PLAYER_NAMES,
@@ -104,7 +104,7 @@ class NaoQuizMaster:
         self.show = NaoShowController(
             nao=self.nao,
             nao_ip=nao_ip,
-            auto_start_airborne_monitor=False
+            auto_start_airborne_monitor=True
         )
         print(f"[INIT] ✓ Show controller ready")
         
@@ -295,7 +295,7 @@ class NaoQuizMaster:
             question = random.choice(COHOST_QUESTIONS)
         
         # Look at cohost and ask with mic pose
-        self.show._look_cohost()
+        self.show.start_face_tracking()
         print(f"[COHOST] NAO asks: {question}")
         self.say_with_mic(question)
         
@@ -342,6 +342,7 @@ class NaoQuizMaster:
             # Ask cohost for input
             print("[COHOST] Asking cohost for input...")
             comeback = self.ask_cohost()
+            self.show.stop_all_tracking()
             self.say_with_mic(comeback)
         else:
             # Just roast the cohost directly (no input needed)
@@ -356,7 +357,7 @@ class NaoQuizMaster:
         print("[COHOST] Direct roast at co-host...")
         
         # Look at cohost direction
-        self.show._look_cohost()
+        self.show.start_face_tracking()
         
         # Generate direct roast using LLM
         joke = get_llm_response_groq(
@@ -365,6 +366,7 @@ class NaoQuizMaster:
         )
         
         # Deliver with mic pose
+        self.show.stop_all_tracking()
         self.say_with_mic(joke)
         print(f"[COHOST] Said: {joke}")
     
@@ -415,7 +417,7 @@ class NaoQuizMaster:
         
         # 2. NAO introduces cohost with a jab
         print("[INTRO] NAO introduces cohost...")
-        self.show._look_cohost()
+        self.show.start_face_tracking()
         self.say_with_mic(
             "And this is my assistant. They're here for... moral support, I guess."
         )
@@ -428,6 +430,7 @@ class NaoQuizMaster:
         if not cohost_response:
             # Cohost didn't respond - make a joke about it
             print("[INTRO] No cohost response, making silence joke...")
+            self.show.stop_all_tracking()
             self.joke_about_silent_cohost()
         else:
             # 4. Generate sarcastic comeback using LLM
@@ -436,6 +439,7 @@ class NaoQuizMaster:
             
             # NAO delivers comeback with mic pose
             print(f"[INTRO] NAO says comeback: {comeback}")
+            self.show.stop_all_tracking()
             self.say_with_mic(comeback)
         
         time.sleep(1)
@@ -516,7 +520,7 @@ class NaoQuizMaster:
             wait_cycles += 1
             if wait_cycles % 3 == 0 and wait_cycles > 0:
                 print("[PLAYERS] Waiting long, talking to cohost...")
-                self.show._look_cohost()
+                self.show.start_face_tracking()
                 # Simple yes/no question - easier for cohost to answer
                 self.say_with_mic("Hey co-host, they're taking a while right?")
                 
@@ -524,8 +528,10 @@ class NaoQuizMaster:
                 response = self.listen_to_cohost()
                 if response:
                     comeback = get_llm_response_groq(response, PROMPT_COHOST_REACT)
+                    self.show.stop_all_tracking()
                     self.say_with_mic(comeback)
                 else:
+                    self.show.stop_all_tracking()
                     self.joke_about_silent_cohost()
             
             # Wait before checking again
@@ -536,7 +542,7 @@ class NaoQuizMaster:
         self.say_with_mic("Great! Everyone is here. Let's get started!")
         
         # Quick cohost jab before starting - no response needed
-        self.show._look_cohost()
+
         self.say_with_mic("Let's go co-host! Try to keep up this time.")
         
         time.sleep(1)
@@ -804,7 +810,7 @@ class NaoQuizMaster:
         
         # 4. Ask cohost for closing words
         print("[FINALE] Asking cohost for closing words...")
-        self.show._look_cohost()
+        self.show.start_face_tracking()
         # Simple question - easier for cohost to respond to
         self.say_with_mic("Hey co-host, that was fun right?")
         

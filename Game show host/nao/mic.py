@@ -47,6 +47,12 @@ from sic_framework.devices.common_naoqi.naoqi_motion_recorder import (
     NaoqiMotionRecording,
     PlayRecording,
 )
+from sic_framework.devices.common_naoqi.naoqi_stiffness import Stiffness
+from sic_framework.devices.common_naoqi.naoqi_tracker import (
+    StartTrackRequest,
+    StopAllTrackRequest,
+)
+
 
 try:
     import qi
@@ -65,17 +71,13 @@ MIC_DOWN_PATH = os.path.join(RECORDINGS_DIR, "mic_down")
 SCREEN_YAW   = 0.877
 SCREEN_PITCH = 0.0
 
-AUDIENCE_LEFT_YAW    = -0.816
-AUDIENCE_LEFT_PITCH  = 0.0
+# nieuwe, simpelere head-poses
+AUDIENCE_LEFT_YAW   = 0.650
+AUDIENCE_LEFT_PITCH = 0.0
 
-AUDIENCE_CENTER_YAW   = -1.488
-AUDIENCE_CENTER_PITCH = 0.0
-
-AUDIENCE_RIGHT_YAW   = -2.000
+AUDIENCE_RIGHT_YAW   = 0.259
 AUDIENCE_RIGHT_PITCH = 0.0
 
-COHOST_YAW   = AUDIENCE_CENTER_YAW
-COHOST_PITCH = AUDIENCE_CENTER_PITCH
 
 # Walking / pacing parameters
 STRAIGHT_STEP          = 1.0   # meters along the stage
@@ -319,29 +321,85 @@ class NaoShowController(object):
     # ------------------------------------------------------------------
     # Mic pose via motion recorder
     # ------------------------------------------------------------------
-    def _mic_up(self):
-        print("[NAO] mic_up()")
-        if self.test_mode or not self.nao or self.mic_up_recording is None:
-            print("[NaoShowController] mic_up(): TEST_MODE or mic_up not loaded")
+    def _mic_up(self, duration: float = 0.5):
+        """
+        Put LEFT arm in mic pose (body and legs stay as they are).
+        Faster version: default duration reduced from 0.6s to 0.3s.
+        """
+        print("[NAO] mic_up() – left arm only")
+        if self.test_mode or self.motion_service is None:
+            print("[NaoShowController] mic_up(): TEST_MODE or no ALMotion")
             return
+
         try:
-            self.nao.motion_record.request(PlayRecording(self.mic_up_recording))
+            # Left arm joints
+            names = [
+                "LShoulderPitch",
+                "LShoulderRoll",
+                "LElbowYaw",
+                "LElbowRoll",
+                "LWristYaw",
+            ]
+
+            # Simple mic pose: arm up & in front of mouth
+            angles = [
+                0.5,   # LShoulderPitch  (arm a bit forward)
+                0.25,  # LShoulderRoll   (arm slightly out)
+                -1.2,  # LElbowYaw       (forearm across body)
+                -1.0,  # LElbowRoll      (elbow bent)
+                0.0,   # LWristYaw
+            ]
+
+            # Faster movement: shorter time
+            times = [duration] * len(names)
+
+            self.motion_service.setStiffnesses("LArm", 1.0)
+            self.motion_service.angleInterpolation(names, angles, times, True)
+
         except Exception as e:
             print(f"[NaoShowController] ERROR in mic_up(): {e}")
 
-    def _mic_down(self):
-        print("[NAO] mic_down()")
-        if self.test_mode or not self.nao or self.mic_down_recording is None:
-            print("[NaoShowController] mic_down(): TEST_MODE or mic_down not loaded")
+
+    def _mic_down(self, duration: float = 0.3):
+        """
+        Return LEFT arm to a relaxed neutral pose (standing).
+        Faster version: default duration reduced from 0.6s to 0.3s.
+        """
+        print("[NAO] mic_down() – left arm only")
+        if self.test_mode or self.motion_service is None:
+            print("[NaoShowController] mic_down(): TEST_MODE or no ALMotion")
             return
+
         try:
-            self.nao.motion_record.request(PlayRecording(self.mic_down_recording))
+            names = [
+                "LShoulderPitch",
+                "LShoulderRoll",
+                "LElbowYaw",
+                "LElbowRoll",
+                "LWristYaw",
+            ]
+
+            # Neutral-ish standing arm pose
+            angles = [
+                1.4,   # LShoulderPitch
+                0.15,  # LShoulderRoll
+                -1.2,  # LElbowYaw
+                -0.5,  # LElbowRoll
+                0.0,   # LWristYaw
+            ]
+
+            # Faster movement: shorter time
+            times = [duration] * len(names)
+
+            self.motion_service.setStiffnesses("LArm", 1.0)
+            self.motion_service.angleInterpolation(names, angles, times, True)
+
         except Exception as e:
             print(f"[NaoShowController] ERROR in mic_down(): {e}")
 
-    # ------------------------------------------------------------------
-    # Right arm pointing (while left arm holds mic)
-    # ------------------------------------------------------------------
+        # ------------------------------------------------------------------
+        # Right arm pointing (while left arm holds mic)
+        # ------------------------------------------------------------------
     def _point_to_screen(self, duration: float = 0.5):
         """
         Point to screen with RIGHT arm while left arm stays in mic pose.
@@ -535,17 +593,42 @@ class NaoShowController(object):
     def _look_audience_left(self):
         self._set_head(self._compensate_yaw(AUDIENCE_LEFT_YAW), AUDIENCE_LEFT_PITCH)
 
-    def _look_audience_center(self):
-        self._set_head(self._compensate_yaw(AUDIENCE_CENTER_YAW), AUDIENCE_CENTER_PITCH)
-
     def _look_audience_right(self):
         self._set_head(self._compensate_yaw(AUDIENCE_RIGHT_YAW), AUDIENCE_RIGHT_PITCH)
 
     def _look_screen(self):
         self._set_head(self._compensate_yaw(SCREEN_YAW), SCREEN_PITCH)
 
-    def _look_cohost(self):
-        self._set_head(self._compensate_yaw(COHOST_YAW), COHOST_PITCH)
+    def start_face_tracking(self):
+        """Start face tracking met alleen het hoofd."""
+        if self.test_mode or not self.nao:
+            print("[NaoShowController] start_face_tracking(): TEST_MODE / no NAO")
+            return
+        try:
+            # Head stijf maken
+            self.nao.stiffness.request(Stiffness(stiffness=1.0, joints=["Head"]))
+            # Face target tracken met het hoofd
+            self.nao.tracker.request(
+                StartTrackRequest(
+                    target_name="Face",
+                    size=0.2,
+                    mode="Head",
+                    effector="None",
+                )
+            )
+        except Exception as e:
+            print(f"[NaoShowController] ERROR in start_face_tracking: {e}")
+
+    def stop_all_tracking(self):
+        """Stop alle tracking (face/ball/etc)."""
+        if self.test_mode or not self.nao:
+            print("[NaoShowController] stop_all_tracking(): TEST_MODE / no NAO")
+            return
+        try:
+            self.nao.tracker.request(StopAllTrackRequest())
+        except Exception as e:
+            print(f"[NaoShowController] ERROR in stop_all_tracking: {e}")
+
 
     # ------------------------------------------------------------------
     # Async walking
@@ -685,25 +768,22 @@ class NaoShowController(object):
     # ------------------------------------------------------------------
     def _update_gaze_during_speech(self, cycle_index: int, leg_sign: int):
         """
-        leg_sign = +1 → direction A along stage (e.g. mostly LEFT audience)
-        leg_sign = -1 → direction B (mostly RIGHT audience)
+        leg_sign = +1 → richting A langs het podium
+        leg_sign = -1 → richting B
         """
         if leg_sign > 0:
             pattern = [
                 self._look_audience_left,
-                self._look_audience_center,
-                self._look_screen,
-                self._look_audience_center,
+                self._look_audience_right,
             ]
         else:
             pattern = [
                 self._look_audience_right,
-                self._look_audience_center,
-                self._look_cohost,
-                self._look_audience_center,
+                self._look_audience_left,
             ]
         func = pattern[cycle_index % len(pattern)]
         func()
+
 
     def _walk_phase_with_gaze(self, straight: float, side: float,
                               phase_duration: float, cycle_index: int,

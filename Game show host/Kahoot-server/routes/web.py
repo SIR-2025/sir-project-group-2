@@ -53,6 +53,13 @@ def play():
 @web_bp.route('/quiz')
 def quiz():
     """Host display screen for projector/TV."""
+    # Generate QR code and join URL for the waiting screen
+    local_ip = get_local_ip()
+    join_url = f"http://{local_ip}:5000/join"
+    qr_code = generate_qr_code(join_url)
+
     return render_template('quiz.html',
                          quiz_title=QUIZ_TITLE,
-                         total_questions=len(QUESTIONS))
+                         total_questions=len(QUESTIONS),
+                         qr_code=qr_code,
+                         join_url=join_url)

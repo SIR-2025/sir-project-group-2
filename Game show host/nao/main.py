@@ -269,7 +269,12 @@ class NaoQuizMaster:
         prompt = prompts.get(joke_type, PROMPT_AUDIENCE)
         
         print(f"[JOKE] Generating {joke_type} joke...")
-        joke = get_llm_response_groq(context, prompt)
+        joke = stream_llm_response_to_nao(
+        self,              # NaoQuizMaster instance
+        context,   # user_message
+        prompt         # system_prompt
+        )
+        
         print(f"[JOKE] Generated: {joke}")
         
         return joke
@@ -306,8 +311,11 @@ class NaoQuizMaster:
             return silence_joke
         
         # Generate comeback using LLM
-        comeback = get_llm_response_groq(cohost_response, PROMPT_COHOST_REACT)
-        
+        comeback = stream_llm_response_to_nao(
+        self,              # NaoQuizMaster instance
+        cohost_response,   # user_message
+        PROMPT_COHOST_REACT         # system_prompt
+        )
         return comeback
     
     def get_next_joke_type(self) -> str:

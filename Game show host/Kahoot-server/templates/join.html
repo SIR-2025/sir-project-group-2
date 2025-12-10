@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Join - {{ quiz_title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* Extra styles for join page */
+        .join-page {
+            background: linear-gradient(135deg, #46178F 0%, #1a1a2e 100%);
+            min-height: 100vh;
+        }
+        .error-text {
+            color: #E21B3C;
+            text-align: center;
+            margin-top: 1rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="join-page">
+    
+    <!-- Main Container - Centered -->
+    <div class="container-center">
+        
+        <!-- Join Card -->
+        <div class="join-card">
+            <!-- Header -->
+            <div class="join-header">
+                <h1>🎮 {{ quiz_title }}</h1>
+                <p>Enter your name to join!</p>
+            </div>
+            
+            <!-- Form -->
+            <div class="form-group">
+                <label for="player-name">Your Name</label>
+                <input 
+                    type="text" 
+                    id="player-name" 
+                    placeholder="Enter your name..." 
+                    maxlength="20"
+                    autocomplete="off"
+                >
+            </div>
+            
+            <button id="join-btn" class="btn btn-primary btn-large" onclick="joinQuiz()">
+                🚀 Join Quiz!
+            </button>
+            
+            <!-- Error message -->
+            <p id="error-msg" class="error-text hidden"></p>
+        </div>
+
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+        
+        // Allow Enter key to submit
+        document.getElementById('player-name').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                joinQuiz();
+            }
+        });
+
+        // Focus on input when page loads
+        document.getElementById('player-name').focus();
+
+        // Join the quiz
+        async function joinQuiz() {
+            const nameInput = document.getElementById('player-name');
+            const joinBtn = document.getElementById('join-btn');
+            const errorMsg = document.getElementById('error-msg');
+            
+            const playerName = nameInput.value.trim();
+            
+            // Validate name
+            if (!playerName) {
+                errorMsg.textContent = 'Please enter your name!';
+                errorMsg.classList.remove('hidden');
+                nameInput.focus();
+                return;
+            }
+            
+            // Disable button while joining
+            joinBtn.disabled = true;
+            joinBtn.textContent = '⏳ Joining...';
+            errorMsg.classList.add('hidden');
+            
+            try {
+                // Call join API
+                const response = await fetch(`${API_BASE}/api/player/join`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: playerName })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    // Redirect to play page with player_id
+                    window.location.href = `${API_BASE}/play?player_id=${data.player_id}`;
+                } else {
+                    throw new Error('Failed to join');
+                }
+                
+            } catch (error) {
+                console.error('Join error:', error);
+                errorMsg.textContent = 'Failed to join. Please try again.';
+                errorMsg.classList.remove('hidden');
+                joinBtn.disabled = false;
+                joinBtn.textContent = '🚀 Join Quiz!';
+            }
+        }
+    </script>
+</body>
+</html>
+

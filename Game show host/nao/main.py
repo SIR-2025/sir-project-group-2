@@ -643,13 +643,13 @@ class NaoQuizMaster:
         
         print("[QUIZ] ✓ Quiz loop complete\n")
     
-    def _wait_for_answers(self, timeout: int = 30, poll_interval: int = 2):
+    def _wait_for_answers(self, timeout: int = 15, poll_interval: int = 2):
         """
-        Wait for all players to answer or timeout (max 30 sec).
+        Wait for all players to answer or timeout (max 15 sec).
         After timeout, moves on even if not everyone answered.
         
         Args:
-            timeout: Max seconds to wait (default 30)
+            timeout: Max seconds to wait (default 15)
             poll_interval: Seconds between checks (default 2)
         """
         print(f"[QUIZ] Waiting for answers (max {timeout}s)...")

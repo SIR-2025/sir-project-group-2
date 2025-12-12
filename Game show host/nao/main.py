@@ -28,7 +28,7 @@ from sic_framework.devices.common_naoqi.naoqi_autonomous import (
 # Local imports
 from server_connection import KahootAPI
 from nao_listener import NaoListener
-from llm_integration_groq import get_llm_response_groq, stream_llm_response_to_nao
+from llm_integration_groq import get_llm_response_groq
 from mic import NaoShowController
 from prompts import (
     PROMPT_PLAYER_NAMES,
@@ -52,7 +52,7 @@ load_dotenv()
 # CONFIGURATION
 # =============================================================================
 
-NAO_IP = "10.0.0.137"
+NAO_IP = "10.0.0.239"
 SERVER_URL = "http://localhost:5000"
 GOOGLE_KEY = abspath(join("..", "..", "conf", "google", "google-key.json"))
 MINIMUM_PLAYERS = 2
@@ -104,7 +104,7 @@ class NaoQuizMaster:
         self.show = NaoShowController(
             nao=self.nao,
             nao_ip=nao_ip,
-            auto_start_airborne_monitor=True
+            auto_start_airborne_monitor=False
         )
         print(f"[INIT] ✓ Show controller ready")
         
@@ -269,12 +269,7 @@ class NaoQuizMaster:
         prompt = prompts.get(joke_type, PROMPT_AUDIENCE)
         
         print(f"[JOKE] Generating {joke_type} joke...")
-        joke = stream_llm_response_to_nao(
-        self,              # NaoQuizMaster instance
-        context,   # user_message
-        prompt         # system_prompt
-        )
-        
+        joke = get_llm_response_groq(context, prompt)
         print(f"[JOKE] Generated: {joke}")
         
         return joke
@@ -311,11 +306,8 @@ class NaoQuizMaster:
             return silence_joke
         
         # Generate comeback using LLM
-        comeback = stream_llm_response_to_nao(
-        self,              # NaoQuizMaster instance
-        cohost_response,   # user_message
-        PROMPT_COHOST_REACT         # system_prompt
-        )
+        comeback = get_llm_response_groq(cohost_response, PROMPT_COHOST_REACT)
+        
         return comeback
     
     def get_next_joke_type(self) -> str:
@@ -342,7 +334,6 @@ class NaoQuizMaster:
             # Ask cohost for input
             print("[COHOST] Asking cohost for input...")
             comeback = self.ask_cohost()
-            self.show.stop_all_tracking()
             self.say_with_mic(comeback)
         else:
             # Just roast the cohost directly (no input needed)
@@ -366,7 +357,6 @@ class NaoQuizMaster:
         )
         
         # Deliver with mic pose
-        self.show.stop_all_tracking()
         self.say_with_mic(joke)
         print(f"[COHOST] Said: {joke}")
     
@@ -414,6 +404,7 @@ class NaoQuizMaster:
         
         # Start mic pose AFTER the gesture (gestures cancel arm positions)
         self.start_mic_pose()
+
         
         # 2. NAO introduces cohost with a jab
         print("[INTRO] NAO introduces cohost...")
@@ -423,24 +414,26 @@ class NaoQuizMaster:
         )
         
         time.sleep(0.5)
-        
+
         # 3. Listen to cohost response
         cohost_response = self.listen_to_cohost()
-        
+        self.show.stop_all_tracking
         if not cohost_response:
+            self.show.face_audience()
             # Cohost didn't respond - make a joke about it
             print("[INTRO] No cohost response, making silence joke...")
-            self.show.stop_all_tracking()
             self.joke_about_silent_cohost()
         else:
+            self.show.face_audience()
             # 4. Generate sarcastic comeback using LLM
             print("[INTRO] Generating LLM response...")
             comeback = get_llm_response_groq(cohost_response, PROMPT_COHOST_REACT)
             
             # NAO delivers comeback with mic pose
             print(f"[INTRO] NAO says comeback: {comeback}")
-            self.show.stop_all_tracking()
             self.say_with_mic(comeback)
+        
+        self.show.stop_all_tracking()
         
         time.sleep(1)
         
@@ -528,10 +521,8 @@ class NaoQuizMaster:
                 response = self.listen_to_cohost()
                 if response:
                     comeback = get_llm_response_groq(response, PROMPT_COHOST_REACT)
-                    self.show.stop_all_tracking()
                     self.say_with_mic(comeback)
                 else:
-                    self.show.stop_all_tracking()
                     self.joke_about_silent_cohost()
             
             # Wait before checking again
@@ -542,7 +533,7 @@ class NaoQuizMaster:
         self.say_with_mic("Great! Everyone is here. Let's get started!")
         
         # Quick cohost jab before starting - no response needed
-
+        self.show.start_face_tracking()
         self.say_with_mic("Let's go co-host! Try to keep up this time.")
         
         time.sleep(1)
@@ -657,13 +648,13 @@ class NaoQuizMaster:
         
         print("[QUIZ] ✓ Quiz loop complete\n")
     
-    def _wait_for_answers(self, timeout: int = 15, poll_interval: int = 2):
+    def _wait_for_answers(self, timeout: int = 30, poll_interval: int = 2):
         """
-        Wait for all players to answer or timeout (max 15 sec).
+        Wait for all players to answer or timeout (max 30 sec).
         After timeout, moves on even if not everyone answered.
         
         Args:
-            timeout: Max seconds to wait (default 15)
+            timeout: Max seconds to wait (default 30)
             poll_interval: Seconds between checks (default 2)
         """
         print(f"[QUIZ] Waiting for answers (max {timeout}s)...")

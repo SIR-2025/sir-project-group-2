@@ -50,7 +50,7 @@ from sic_framework.devices.common_naoqi.naoqi_motion_recorder import (
 from sic_framework.devices.common_naoqi.naoqi_stiffness import Stiffness
 from sic_framework.devices.common_naoqi.naoqi_tracker import (
     StartTrackRequest,
-    StopAllTrackRequest,
+    RemoveTargetRequest,
 )
 
 
@@ -132,6 +132,8 @@ class NaoShowController(object):
         # Airborne events
         self._airborne_events = 0
         self._airborne_armed = False  # only react once we've seen ground
+
+        self._active_targets = set()
 
         if not self.test_mode:
             self._setup_qi()
@@ -321,7 +323,7 @@ class NaoShowController(object):
     # ------------------------------------------------------------------
     # Mic pose via motion recorder
     # ------------------------------------------------------------------
-    def _mic_up(self, duration: float = 0.5):
+    def _mic_up(self, duration: float = 0.8):
         """
         Put LEFT arm in mic pose (body and legs stay as they are).
         Faster version: default duration reduced from 0.6s to 0.3s.
@@ -616,18 +618,26 @@ class NaoShowController(object):
                     effector="None",
                 )
             )
+            # onthouden dat 'Face' actief is
+            self._active_targets.add("Face")
         except Exception as e:
             print(f"[NaoShowController] ERROR in start_face_tracking: {e}")
 
+
     def stop_all_tracking(self):
-        """Stop alle tracking (face/ball/etc)."""
+        """Stop face tracking zonder rest."""
         if self.test_mode or not self.nao:
             print("[NaoShowController] stop_all_tracking(): TEST_MODE / no NAO")
             return
         try:
-            self.nao.tracker.request(StopAllTrackRequest())
+            self.nao.tracker.request(
+                RemoveTargetRequest(target_name="Face")
+            )
         except Exception as e:
             print(f"[NaoShowController] ERROR in stop_all_tracking: {e}")
+
+
+
 
 
     # ------------------------------------------------------------------

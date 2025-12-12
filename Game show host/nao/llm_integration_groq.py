@@ -89,7 +89,6 @@ Your Output: "Mike Hunt is here! Anyone else having trouble saying that with a s
 #response = get_llm_response_groq(user_message_str, system_prompt_pre_quiz)
 #print(f"Response: {response}")
 
-
 def stream_llm_response_to_nao(
     nao_quiz_master,
     user_message: str,
@@ -98,7 +97,7 @@ def stream_llm_response_to_nao(
 ) -> str:
     """
     Stream LLM response from Groq and let NAO start talking earlier.
-    `nao_quiz_master` is your NaoQuizMaster instance (for .say()).
+    `nao_quiz_master` is your NaoQuizMaster instance (for .say_with_mic()).
     Returns the full generated text.
     """
     try:
@@ -115,7 +114,7 @@ def stream_llm_response_to_nao(
             messages=messages,
             temperature=0.8,
             max_tokens=50,
-            stream=True,   # ← key change
+            stream=True,
         )
 
         full_text = ""
@@ -129,19 +128,15 @@ def stream_llm_response_to_nao(
             full_text += delta
             buffer += delta
 
-            # Only speak when we’ve reached a sentence boundary
-            if any(p in buffer for p in [".", "!", "?"]) and len(buffer) > 25:
-                nao_quiz_master.say(buffer.strip(), block=True)
+            # When buffer is big enough or reaches a sentence end, speak it
+            if len(buffer) > 20 or any(p in buffer for p in [".", "!", "?"]):
+                nao_quiz_master.say_with_mic(buffer)
                 buffer = ""
 
-        # At end, if there's something left without punctuation, say it
+        # Flush remaining text at the end
         if buffer.strip():
-            nao_quiz_master.say(buffer.strip(), block=True)
+            nao_quiz_master.say_with_mic(buffer)
 
-                # Flush remaining text at the end
-
-
-        print("HOI")
         print(f"[LLM] Streaming complete: {len(full_text)} characters")
         return full_text
 

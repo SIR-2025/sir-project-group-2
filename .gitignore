@@ -30,3 +30,7 @@ conf/dialogflow/*.json
 
 .env
 conf/google/google-key.json
+
+# secrets
+conf/google/google-key.json
+.env

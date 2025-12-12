@@ -412,19 +412,22 @@ class NaoQuizMaster:
         self.say_with_mic(
             "And this is my assistant. They're here for... moral support, I guess."
         )
+        self.show.stop_all_tracking()
+        print('HI')
         
+        self.end_mic_pose()
         time.sleep(0.5)
 
         # 3. Listen to cohost response
         cohost_response = self.listen_to_cohost()
         self.show.stop_all_tracking
         if not cohost_response:
-            self.show.face_audience()
+            self.show._look_audience_left()
             # Cohost didn't respond - make a joke about it
             print("[INTRO] No cohost response, making silence joke...")
             self.joke_about_silent_cohost()
         else:
-            self.show.face_audience()
+            self.show._look_audience_left()
             # 4. Generate sarcastic comeback using LLM
             print("[INTRO] Generating LLM response...")
             comeback = get_llm_response_groq(cohost_response, PROMPT_COHOST_REACT)
@@ -433,12 +436,13 @@ class NaoQuizMaster:
             print(f"[INTRO] NAO says comeback: {comeback}")
             self.say_with_mic(comeback)
         
-        self.show.stop_all_tracking()
+        
         
         time.sleep(1)
         
         # 5. Extra direct roast at cohost for fun
         print("[INTRO] Extra cohost roast...")
+        self.show._look_audience_right()
         self.roast_cohost_direct()
         
         time.sleep(1)
@@ -472,7 +476,7 @@ class NaoQuizMaster:
         
         time.sleep(1)
         self.say_with_mic("Type in your name. Don't worry, I don't judge your username choices... much.")
-        
+        self.end_mic_pose()
         # 2. Wait for players to join
         print(f"[PLAYERS] Waiting for {self.minimum_players} players...")
         

@@ -28,7 +28,7 @@ from sic_framework.devices.common_naoqi.naoqi_autonomous import (
 # Local imports
 from server_connection import KahootAPI
 from nao_listener import NaoListener
-from llm_integration_groq import get_llm_response_groq
+from llm_integration_groq import stream_llm_response_to_nao
 from mic import NaoShowController
 from prompts import (
     PROMPT_PLAYER_NAMES,
@@ -269,7 +269,7 @@ class NaoQuizMaster:
         prompt = prompts.get(joke_type, PROMPT_AUDIENCE)
         
         print(f"[JOKE] Generating {joke_type} joke...")
-        joke = get_llm_response_groq(context, prompt)
+        joke = stream_llm_response_to_nao(self,context, prompt)
         print(f"[JOKE] Generated: {joke}")
         
         return joke
@@ -299,14 +299,14 @@ class NaoQuizMaster:
         
         if not cohost_response:
             # No response - generate silence joke
-            silence_joke = get_llm_response_groq(
+            silence_joke = stream_llm_response_to_nao(self,
                 "The co-host didn't respond",
                 PROMPT_COHOST_SILENT
             )
             return silence_joke
         
         # Generate comeback using LLM
-        comeback = get_llm_response_groq(cohost_response, PROMPT_COHOST_REACT)
+        comeback = stream_llm_response_to_nao(self,cohost_response, PROMPT_COHOST_REACT)
         
         return comeback
     
@@ -351,13 +351,12 @@ class NaoQuizMaster:
         self.show.start_face_tracking()
         
         # Generate direct roast using LLM
-        joke = get_llm_response_groq(
+        joke = stream_llm_response_to_nao(self,
             "Make a direct jab at the co-host",
             PROMPT_COHOST_DIRECT
         )
         
         # Deliver with mic pose
-        self.say_with_mic(joke)
         print(f"[COHOST] Said: {joke}")
     
     def joke_about_silent_cohost(self):
@@ -367,12 +366,11 @@ class NaoQuizMaster:
         print("[COHOST] Cohost is silent, making joke...")
         
         # Generate silence joke
-        joke = get_llm_response_groq(
+        joke = stream_llm_response_to_nao(self,
             "The co-host didn't respond",
             PROMPT_COHOST_SILENT
         )
         
-        self.say_with_mic(joke)
         print(f"[COHOST] Silent joke: {joke}")
     
     # =========================================================================
@@ -412,9 +410,8 @@ class NaoQuizMaster:
         self.say_with_mic(
             "And this is my assistant. They're here for... moral support, I guess."
         )
-        self.show.stop_all_tracking()
-        print('HI')
         
+
         self.end_mic_pose()
         time.sleep(0.5)
 
@@ -430,11 +427,11 @@ class NaoQuizMaster:
             self.show._look_audience_left()
             # 4. Generate sarcastic comeback using LLM
             print("[INTRO] Generating LLM response...")
-            comeback = get_llm_response_groq(cohost_response, PROMPT_COHOST_REACT)
+            comeback = stream_llm_response_to_nao(self, cohost_response, PROMPT_COHOST_REACT)
             
             # NAO delivers comeback with mic pose
             print(f"[INTRO] NAO says comeback: {comeback}")
-            self.say_with_mic(comeback)
+
         
         
         
@@ -443,8 +440,10 @@ class NaoQuizMaster:
         # 5. Extra direct roast at cohost for fun
         print("[INTRO] Extra cohost roast...")
         self.show._look_audience_right()
+        self.show.start_face_tracking()
         self.roast_cohost_direct()
-        
+        self.show.stop_all_tracking()
+        self.show._look_audience_left()
         time.sleep(1)
         print("[INTRO] ✓ Intro phase complete\n")
     
@@ -504,11 +503,10 @@ class NaoQuizMaster:
                 if player_names:
                     # Get the newest player (last in list)
                     newest_name = player_names[-1] if player_names else "someone"
-                    joke = get_llm_response_groq(
+                    joke = stream_llm_response_to_nao(self,
                         f"New player just joined with name: {newest_name}",
                         PROMPT_PLAYER_NAMES
                     )
-                    self.say_with_mic(joke)
                     jokes_made += 1
                 
                 last_player_count = player_count
@@ -524,8 +522,7 @@ class NaoQuizMaster:
                 # Listen for cohost response
                 response = self.listen_to_cohost()
                 if response:
-                    comeback = get_llm_response_groq(response, PROMPT_COHOST_REACT)
-                    self.say_with_mic(comeback)
+                    comeback = stream_llm_response_to_nao(self, response, PROMPT_COHOST_REACT)
                 else:
                     self.joke_about_silent_cohost()
             
@@ -704,11 +701,10 @@ class NaoQuizMaster:
             names_str = ", ".join(wrong_players[:3])
             
             # Use the transition-specific prompt for wrong answers
-            joke = get_llm_response_groq(
+            joke = stream_llm_response_to_nao(self,
                 f"Players who got it wrong: {names_str}",
                 PROMPT_WRONG_ANSWER_TRANSITION
             )
-            self.say_with_mic(joke)
             time.sleep(1)
         else:
             # Everyone got it right - be impressed
@@ -813,8 +809,7 @@ class NaoQuizMaster:
         
         if cohost_response:
             # React to cohost
-            comeback = get_llm_response_groq(cohost_response, PROMPT_COHOST_REACT)
-            self.say_with_mic(comeback)
+            comeback = stream_llm_response_to_nao(self, cohost_response, PROMPT_COHOST_REACT)
         else:
             # Cohost didn't respond - make a joke about it
             self.joke_about_silent_cohost()

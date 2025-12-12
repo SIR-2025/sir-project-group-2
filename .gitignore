@@ -36,3 +36,7 @@ conf/google/google-key.json
 .env
 conf/google/google-key.json
 .env
+
+# secrets
+conf/google/google-key.json
+.env

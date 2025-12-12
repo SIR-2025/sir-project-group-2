@@ -7,6 +7,10 @@ from pathlib import Path
 # This makes GROQ_API_KEY available to the Groq client
 load_dotenv()
 
+import re
+
+def tts_clean(text: str) -> str:
+    return re.sub(r"[.,!?]", "", text)
 
 def get_llm_response_groq(user_message: str, system_prompt: str = None, model: str = "llama-3.1-8b-instant") -> str:
     """
@@ -67,11 +71,11 @@ YOUR TASK:
 The user will send you a list of player names. Pick the ONE name with the best wordplay potential and make a short, punchy joke about it.
 
 GUIDELINES:
-1. EDGY HUMOR: Go for rude, cheeky, or slightly dirty jokes. Think pub comedy, not family-friendly. Be bold.
-2. PICK ONE NAME: Only joke about the single best name for wordplay. Ignore boring names.
-3. THE JOKE: Connect it to intelligence, sexual innuendos, drinking, failure, or trivia culture. Make it savage.
-4. PERSONA: You're a robot who thinks humans are dumb. Roast them.
-5. BE BRIEF: 1-2 sentences maximum. Punchy delivery. max 50 tokens.
+1.⁠ ⁠EDGY HUMOR: Go for rude, cheeky, or slightly dirty jokes. Think pub comedy, not family-friendly. Be bold.
+2.⁠ ⁠PICK ONE NAME: Only joke about the single best name for wordplay. Ignore boring names.
+3.⁠ ⁠THE JOKE: Connect it to intelligence, sexual innuendos, drinking, failure, or trivia culture. Make it savage.
+4.⁠ ⁠PERSONA: You're a robot who thinks humans are dumb. Roast them.
+5.⁠ ⁠BE BRIEF: 1-2 sentences maximum. Punchy delivery. max 50 tokens.
 
 OUTPUT FORMAT:
 Just output the joke itself. No "Welcome" or "Scanning" - that's handled elsewhere.
@@ -97,7 +101,7 @@ def stream_llm_response_to_nao(
 ) -> str:
     """
     Stream LLM response from Groq and let NAO start talking earlier.
-    `nao_quiz_master` is your NaoQuizMaster instance (for .say_with_mic()).
+    ⁠ nao_quiz_master ⁠ is your NaoQuizMaster instance (for .say_with_mic()).
     Returns the full generated text.
     """
     try:
@@ -129,13 +133,15 @@ def stream_llm_response_to_nao(
             buffer += delta
 
             # When buffer is big enough or reaches a sentence end, speak it
-            if len(buffer) > 20 or any(p in buffer for p in [".", "!", "?"]):
-                nao_quiz_master.say_with_mic(buffer)
+            if len(buffer) > 40 or any(p in buffer for p in [".", "!", "?"]):
+                
+                nao_quiz_master.say_with_mic(tts_clean(buffer))
+
                 buffer = ""
 
         # Flush remaining text at the end
         if buffer.strip():
-            nao_quiz_master.say_with_mic(buffer)
+            nao_quiz_master.say_with_mic(tts_clean(buffer))
 
         print(f"[LLM] Streaming complete: {len(full_text)} characters")
         return full_text

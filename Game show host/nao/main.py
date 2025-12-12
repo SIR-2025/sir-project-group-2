@@ -104,7 +104,7 @@ class NaoQuizMaster:
         self.show = NaoShowController(
             nao=self.nao,
             nao_ip=nao_ip,
-            auto_start_airborne_monitor=False
+            auto_start_airborne_monitor=True
         )
         print(f"[INIT] ✓ Show controller ready")
         
@@ -334,7 +334,6 @@ class NaoQuizMaster:
             # Ask cohost for input
             print("[COHOST] Asking cohost for input...")
             comeback = self.ask_cohost()
-            self.say_with_mic(comeback)
         else:
             # Just roast the cohost directly (no input needed)
             print("[COHOST] Roasting cohost directly...")
@@ -391,7 +390,7 @@ class NaoQuizMaster:
         print("\n" + "="*60)
         print("PHASE: INTRO")
         print("="*60)
-        
+        self.show.face_audience()
         # 1. NAO introduces himself with wave gesture
         print("[INTRO] NAO introduces himself...")
         self.say_with_gesture(
@@ -475,7 +474,9 @@ class NaoQuizMaster:
         
         time.sleep(1)
         self.say_with_mic("Type in your name. Don't worry, I don't judge your username choices... much.")
+        self.show._say_with_mic_walk_turn_and_gaze_internal("I want to play it myself I am going to sit in the audience!")
         self.end_mic_pose()
+        time.sleep(3)
         # 2. Wait for players to join
         print(f"[PLAYERS] Waiting for {self.minimum_players} players...")
         
@@ -725,7 +726,6 @@ class NaoQuizMaster:
             distribution = result.get("distribution", {})
             context = f"Answer distribution: {distribution}"
             joke = self.make_joke("audience", context)
-            self.say_with_mic(joke)
     
     def phase_finale(self):
         """

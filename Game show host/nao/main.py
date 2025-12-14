@@ -55,7 +55,7 @@ load_dotenv()
 NAO_IP = "10.0.0.239"
 SERVER_URL = "http://localhost:5000"
 GOOGLE_KEY = abspath(join("..", "..", "conf", "google", "google-key.json"))
-MINIMUM_PLAYERS = 2
+JOIN_WAIT_TIME = 60  # Seconds to wait for players to join before starting quiz
 
 
 # =============================================================================
@@ -68,7 +68,7 @@ class NaoQuizMaster:
     Manages all NAO behaviors for the quiz show.
     """
     
-    def __init__(self, nao_ip: str, server_url: str, google_key_path: str, minimum_players: int = 2):
+    def __init__(self, nao_ip: str, server_url: str, google_key_path: str, join_wait_time: int = 60):
         """
         Initialize NAO Quiz Master.
         
@@ -76,13 +76,13 @@ class NaoQuizMaster:
             nao_ip: IP address of NAO robot
             server_url: URL of Kahoot server
             google_key_path: Path to Google Cloud credentials
-            minimum_players: Minimum players needed to start
+            join_wait_time: Seconds to wait for players to join before starting
         """
         print(f"[INIT] Initializing NaoQuizMaster...")
         
         # Store configuration
         self.nao_ip = nao_ip
-        self.minimum_players = minimum_players
+        self.join_wait_time = join_wait_time
         
         # Connect to NAO (single connection)
         print(f"[INIT] Connecting to NAO at {nao_ip}...")
@@ -448,14 +448,14 @@ class NaoQuizMaster:
     
     def phase_wait_for_players(self):
         """
-        Phase 2: Wait for players to join and make jokes.
+        Phase 2: Wait for players to join using a timer.
         
         Flow:
         1. NAO tells people to join via QR code (points to screen)
-        2. Loop: check player count every 5 seconds
+        2. Timer starts (60 seconds by default)
         3. Make jokes about player names as they join
-        4. Interact with cohost if waiting too long
-        5. When minimum reached: continue to quiz
+        4. Interact with cohost during wait
+        5. When timer ends: start quiz regardless of player count
         """
         print("\n" + "="*60)
         print("PHASE: WAITING FOR PLAYERS")
@@ -477,24 +477,25 @@ class NaoQuizMaster:
         self.show._say_with_mic_walk_turn_and_gaze_internal("I want to play it myself I am going to sit in the audience!")
         self.end_mic_pose()
         time.sleep(3)
-        # 2. Wait for players to join
-        print(f"[PLAYERS] Waiting for {self.minimum_players} players...")
+        
+        # 2. Wait for players using timer
+        print(f"[PLAYERS] Waiting {self.join_wait_time} seconds for players to join...")
         
         jokes_made = 0  # Track how many jokes we made
-        wait_cycles = 0  # Track how long we've been waiting
+        elapsed = 0  # Track elapsed time in seconds
         last_player_count = 0
+        poll_interval = 5  # Check every 5 seconds
         
-        while True:
+        # Announce the timer
+        self.say_with_mic(f"You have {self.join_wait_time} seconds to join!")
+        
+        while elapsed < self.join_wait_time:
             # Get current player status
             status = self.api.get_status()
             player_count = status.get("player_count", 0)
+            remaining = self.join_wait_time - elapsed
             
-            print(f"[PLAYERS] Current players: {player_count}/{self.minimum_players}")
-            
-            # Check if we reached minimum
-            if player_count >= self.minimum_players:
-                print(f"[PLAYERS] ✓ Minimum players reached!")
-                break
+            print(f"[PLAYERS] Players: {player_count} | Time remaining: {remaining}s")
             
             # New player joined - make a joke about their name
             if player_count > last_player_count and player_count > 0:
@@ -512,15 +513,18 @@ class NaoQuizMaster:
                 
                 last_player_count = player_count
             
-            # If waiting too long (every 3 cycles = 15 sec), interact with cohost
-            wait_cycles += 1
-            if wait_cycles % 3 == 0 and wait_cycles > 0:
-                print("[PLAYERS] Waiting long, talking to cohost...")
+            # Time announcements at key moments
+            if remaining == 30:
+                self.say_with_mic("30 seconds left to join!")
+            elif remaining == 10:
+                self.say_with_mic("10 seconds! Last chance to join!")
+            
+            # Cohost interaction at the halfway point (once)
+            if elapsed == 30:
+                print("[PLAYERS] Halfway point, talking to cohost...")
                 self.show.start_face_tracking()
-                # Simple yes/no question - easier for cohost to answer
-                self.say_with_mic("Hey co-host, they're taking a while right?")
+                self.say_with_mic("Hey co-host, think we'll get more players?")
                 
-                # Listen for cohost response
                 response = self.listen_to_cohost()
                 if response:
                     comeback = stream_llm_response_to_nao(self, response, PROMPT_COHOST_REACT)
@@ -528,11 +532,12 @@ class NaoQuizMaster:
                     self.joke_about_silent_cohost()
             
             # Wait before checking again
-            time.sleep(5)
+            time.sleep(poll_interval)
+            elapsed += poll_interval
         
-        # All players joined - celebrate
-        print("[PLAYERS] All players joined!")
-        self.say_with_mic("Great! Everyone is here. Let's get started!")
+        # Timer finished - start the quiz
+        print(f"[PLAYERS] Timer done! {last_player_count} players joined.")
+        self.say_with_mic("Time is up! Let's get started!")
         
         # Quick cohost jab before starting - no response needed
         self.show.start_face_tracking()
@@ -642,8 +647,9 @@ class NaoQuizMaster:
             print("[QUIZ] Moving to next question...")
             next_result = self.api.next_question()
             
-            if not next_result:
-                # No more questions
+            # Check if we've completed all questions
+            # (question_num starts at 1, so after question 5 we're done with 5 total)
+            if question_num >= total_questions:
                 quiz_finished = True
             else:
                 question_num += 1
@@ -902,7 +908,7 @@ def main():
     print(f"NAO IP:          {NAO_IP}")
     print(f"Server URL:      {SERVER_URL}")
     print(f"Google Key:      {GOOGLE_KEY}")
-    print(f"Min Players:     {MINIMUM_PLAYERS}")
+    print(f"Join Wait Time:  {JOIN_WAIT_TIME}s")
     print("="*60 + "\n")
     
     # Create quiz master and run
@@ -910,7 +916,7 @@ def main():
         nao_ip=NAO_IP,
         server_url=SERVER_URL,
         google_key_path=GOOGLE_KEY,
-        minimum_players=MINIMUM_PLAYERS
+        join_wait_time=JOIN_WAIT_TIME
     )
     
     quiz_master.run()

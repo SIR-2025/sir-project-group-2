@@ -474,7 +474,7 @@ class NaoQuizMaster:
         
         time.sleep(1)
         self.say_with_mic("Type in your name. Don't worry, I don't judge your username choices... much.")
-        self.show._say_with_mic_walk_turn_and_gaze_internal("I want to play it myself I am going to sit in the audience!")
+        self.show._say_with_mic_walk_turn_and_gaze_internal("Actually, I want to play the quiz myself, I am going to sit in the audience!")
         self.end_mic_pose()
         time.sleep(3)
         
@@ -628,8 +628,13 @@ class NaoQuizMaster:
                 self.say_with_mic(f"Time's up! The correct answer is... {letter}, {text}!", point_to_screen=True)
                 time.sleep(1)
                 
-                # 5. Make a joke (rotating type)
-                self._do_joke_for_question(result)
+
+                if question_num == 4:
+                    self.show._say_with_mic_walk_turn_and_gaze_internal("So you guys do not think I am funny? I am leaving!")
+                    self.end_mic_pose()
+                    time.sleep(3)
+                else:
+                    self._do_joke_for_question(result)
             
             time.sleep(1)
             

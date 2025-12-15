@@ -661,7 +661,7 @@ class NaoQuizMaster:
         
         print("[QUIZ] ✓ Quiz loop complete\n")
     
-    def _wait_for_answers(self, timeout: int = 30, poll_interval: int = 2):
+    def _wait_for_answers(self, timeout: int = 10, poll_interval: int = 2):
         """
         Wait for all players to answer or timeout (max 30 sec).
         After timeout, moves on even if not everyone answered.
@@ -753,6 +753,7 @@ class NaoQuizMaster:
         print("PHASE: FINALE")
         print("="*60)
         
+        
         # Get final leaderboard
         leaderboard = self.api.show_leaderboard()
         
@@ -763,7 +764,7 @@ class NaoQuizMaster:
         # 1. Build tension
         print("[FINALE] Building tension...")
         self.say_with_mic("Alright everyone... the moment you've been waiting for...")
-        time.sleep(2)
+        time.sleep(1)
         
         self.say_with_mic("Let's see who proved they're NOT completely hopeless at trivia!")
         time.sleep(1)
@@ -775,20 +776,22 @@ class NaoQuizMaster:
         
         print(f"[FINALE] Winner: {winner_name} with {winner_score} points")
         
-        # Generate winner joke
-        winner_context = f"Winner is {winner_name} with {winner_score} points"
-        winner_joke = self.make_joke("winner", winner_context)
-        
+        # First announce the winner
         self.say_with_mic("And the winner is...")
-        time.sleep(2)
+        time.sleep(1)
         self.say_with_gesture(
             f"{winner_name}! With {winner_score} points!",
             animation="animations/Stand/Gestures/Enthusiastic_4"
         )
-        time.sleep(1)
-        self.say_with_mic(winner_joke)
         
-        time.sleep(2)
+        time.sleep(1)
+        
+        # Then generate and speak winner joke AFTER announcing
+        # Note: make_joke() speaks the joke via stream_llm_response_to_nao
+        winner_context = f"Winner is {winner_name} with {winner_score} points"
+        self.make_joke("winner", winner_context)
+        
+        time.sleep(1)
         
         # 3. Announce loser (if more than 1 player)
         if len(leaderboard) > 1:
@@ -798,17 +801,17 @@ class NaoQuizMaster:
             
             print(f"[FINALE] Loser: {loser_name} with {loser_score} points")
             
-            # Generate loser joke
-            loser_context = f"Last place is {loser_name} with {loser_score} points"
-            loser_joke = self.make_joke("loser", loser_context)
-            
+            # First announce the loser
             self.say_with_mic("And in last place...")
             time.sleep(1)
             self.say_with_mic(f"{loser_name} with {loser_score} points.")
-            time.sleep(1)
-            self.say_with_mic(loser_joke)
+            
+            # Then generate and speak loser joke AFTER announcing
+            # Note: make_joke() speaks the joke via stream_llm_response_to_nao
+            loser_context = f"Last place is {loser_name} with {loser_score} points"
+            self.make_joke("loser", loser_context)
         
-        time.sleep(2)
+        time.sleep(1)
         
         # 4. Ask cohost for closing words
         print("[FINALE] Asking cohost for closing words...")
@@ -826,6 +829,9 @@ class NaoQuizMaster:
             self.joke_about_silent_cohost()
         
         time.sleep(1)
+        
+        # Stop face tracking before closing
+        self.show.stop_all_tracking()
         
         # 5. NAO closes the show
         print("[FINALE] Closing the show...")

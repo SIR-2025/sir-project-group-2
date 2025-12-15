@@ -282,17 +282,19 @@ body {
     display: flex;
     justify-content: space-around;
     align-items: flex-end;
-    height: 400px;
+    height: 580px;
     padding: var(--spacing-lg);
     background: rgba(255,255,255,0.1);
     border-radius: var(--radius-lg);
 }
 
 .bar-container {
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-rows: auto 350px auto;  /* Vaste hoogte voor bar area */
     align-items: center;
+    justify-items: center;
     width: 20%;
+    height: 100%;
 }
 
 .bar-count {
@@ -309,6 +311,8 @@ body {
     justify-content: center;
     padding-top: var(--spacing-sm);
     transition: height 0.5s ease;
+    align-self: end;        /* NIEUW: start onderaan de grid cell */
+    min-height: 0;          /* NIEUW: voorkom dat padding ruimte inneemt bij 0% */
 }
 
 .correct-mark {

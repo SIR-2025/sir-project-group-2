@@ -126,10 +126,10 @@
         // Render bar chart for results
         function renderBarChart(distribution, correctAnswer) {
             const chart = document.getElementById('bar-chart');
-            const maxCount = Math.max(...Object.values(distribution), 1);
+            const totalCount = Object.values(distribution).reduce((sum, count) => sum + count, 0) || 1;
             
             chart.innerHTML = Object.entries(distribution).map(([idx, count]) => {
-                const height = (count / maxCount) * 100;
+                const height = (count / totalCount) * 100;
                 const isCorrect = parseInt(idx) === correctAnswer;
                 return `
                     <div class="bar-container">

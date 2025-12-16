@@ -101,7 +101,7 @@ def stream_llm_response_to_nao(
 ) -> str:
     """
     Stream LLM response from Groq and let NAO start talking earlier.
-    ⁠ nao_quiz_master ⁠ is your NaoQuizMaster instance (for .say_with_mic()).
+    ⁠ nao_quiz_master ⁠ is your NaoQuizMaster instance (for .say_with_mic()).
     Returns the full generated text.
     """
     try:
@@ -149,3 +149,4 @@ def stream_llm_response_to_nao(
     except Exception as e:
         print(f"[LLM] Streaming error: {str(e)}")
         return f"Error: Could not stream response from LLM - {str(e)}"
+

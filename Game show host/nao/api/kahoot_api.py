@@ -140,3 +140,4 @@ if __name__ == "__main__":
     print("\n--- Testing API ---")
     api.get_status()
     api.get_players()
+

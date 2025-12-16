@@ -12,7 +12,7 @@ Modular helper for NAO show behavior:
 - World-fixed gaze using head yaw calibration
 - Airborne panic behavior with countdown when put back down
 
-This is NOT a SICApplication. It’s meant to be used from your main
+This is NOT a SICApplication. It's meant to be used from your main
 NaoQuizMaster (which already creates a Nao object and orchestrates the show).
 
 Usage from main:
@@ -61,7 +61,7 @@ except ImportError:
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.dirname(os.path.dirname(BASE_DIR))
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(BASE_DIR)))
 RECORDINGS_DIR = os.path.join(PROJECT_ROOT, "demos", "nao")
 
 MIC_UP_PATH = os.path.join(RECORDINGS_DIR, "mic_up")
@@ -901,3 +901,4 @@ class NaoShowController(object):
         # mic pose down, arms normal
         self._mic_down()
         self._set_walk_arm_swing(True, True)
+

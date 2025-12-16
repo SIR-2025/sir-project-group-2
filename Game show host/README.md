@@ -1,359 +1,409 @@
-# Nao Game Show Host
+# 🎮 NAO Game Show Host
 
-A modular quiz system where the Nao robot acts as the quiz master.
+An interactive quiz system where a NAO robot hosts a Kahoot-style quiz with AI-generated comedy.
 
-## 📦 What Is This?
+## Overview
 
-This project consists of **two independent modules** that work together:
+This project combines a **Flask quiz server** with a **NAO robot controller** to create an entertaining, interactive quiz show experience.
 
+```
+                         ┌─────────────────────────────────────┐
+                         │         📺 Host Display             │
+                         │      (Projector / TV Screen)        │
+                         └──────────────────┬──────────────────┘
+                                            │ Updates
+                                            ▼
+┌──────────────────┐                ┌───────────────────────────────────┐
+│   📱 Players     │                │       🖥️  Kahoot-server           │
+│                  │    HTTP        │                                   │
+│  Phone 1  ───────┼───────────────►│   Flask Web App                   │
+│  Phone 2  ───────┼───────────────►│   • Quiz State                    │
+│  Phone 3  ───────┼───────────────►│   • Player Management             │
+│  ...             │                │   • Scoring                       │
+└──────────────────┘                │   • REST API                      │
+                                    └──────────────────┬────────────────┘
+                                                       │
+                                                       │ REST API (JSON)
+                                                       ▼
+                                    ┌───────────────────────────────────┐
+                                    │         🤖 NAO Robot              │
+                                    │                                   │
+                                    │   • Quiz Master (main.py)         │
+                                    │   • Groq LLM (jokes)              │
+                                    │   • Google STT (listening)        │
+                                    │   • Physical Control              │
+                                    └───────────────────────────────────┘
+```
+
+## 📦 Project Structure
 
 ```
 Game show host/
-├── requirements.txt ← Install here (for both modules)
-├── Kahoot-server/ ← Quiz server (Flask web app)
-└── nao/ ← Nao robot code (SIC framework)
+├── README.md              ← You are here (umbrella documentation)
+├── requirements.txt       ← All dependencies (install once)
+├── Kahoot-server/         ← Quiz server module
+│   ├── README.md          ← Server-specific docs
+│   ├── app.py             ← Flask entry point
+│   ├── routes/            ← API endpoints
+│   ├── core/              ← Business logic
+│   ├── data/              ← Quiz questions
+│   ├── templates/         ← HTML pages
+│   └── static/            ← CSS styling
+└── nao/                   ← NAO robot module
+    ├── README.md          ← Robot-specific docs
+    ├── main.py            ← Robot entry point
+    ├── prompts.py         ← LLM joke prompts
+    ├── api/               ← Server communication
+    ├── robot/             ← Physical control
+    └── speech/            ← STT & LLM integration
 ```
 
-
-### Module 1: Kahoot-server
-- **What**: A simple Flask web server for quiz management  
-- **Does**: Keeps quiz state, sends questions to players  
-- **For**: Players (via browser) and Nao (via API)  
-- **Technology**: Pure Python Flask, no database  
-
-### Module 2: nao
-- **What**: Nao robot application that presents the quiz  
-- **Does**: Connects to server, reads questions aloud, announces results  
-- **For**: Nao robot  
-- **Technology**: SIC framework  
-
-## 🎯 How Does It Work?
-
-
-
-```
-┌─────────────┐
-│   Players   │  → Browser: http://localhost:5000/join
-│  (Browser)  │
-└──────┬──────┘
-       │
-       ↓ HTTP Requests
-┌─────────────────────────────────────────┐
-│         Kahoot-server/                  │
-│         Flask Server (app.py)           │
-│                                         │
-│  • Maintains quiz state                 │
-│  • Receives answers from players        │
-│  • Provides REST API for Nao            │
-└──────┬──────────────────────────────────┘
-       │
-       ↓ REST API (JSON)
-┌──────────────────────────────────┐
-│         nao/                     │
-│         Nao Robot Application    │
-│                                  │
-│  • Fetches questions via API     │
-│  • Reads questions alou          │
-│  • Announces results             │
-└──────────────────────────────────┘
-```
-
-
-## 🚀 Quick Start (3 minutes)
+## 🚀 Quick Start (for TAs)
 
 ### Step 1: Install Dependencies
 
 ```bash
-# Install all dependencies (one time)
 cd "Game show host"
 pip install -r requirements.txt
-
+pip install "social-interaction-cloud[google-stt]"
 ```
 
-**What gets installed**:
-- Flask + CORS (for server)
-- QR code generator (for players to join)
-- Requests (for API communication)
-- SIC framework (commented out — only needed for real Nao)
+### Step 2: Set Up API Keys
 
-### Step 2: Start de Quiz Server
+Create `nao/.env`:
+```env
+GROQ_API_KEY=your_groq_api_key_here
+```
+
+Ensure Google credentials exist at `conf/google/google-key.json`.
+
+### Step 3: Start Everything (4 terminals)
 
 ```bash
-# Terminal 1: Start server
+# Terminal 1: Quiz Server
 cd "Game show host/Kahoot-server"
 python app.py
 
-```
+# Terminal 2: Redis (required for SIC framework)
+# From sic_applications root folder:
+cd conf/redis
+.\redis-server.exe redis.conf      # Windows
+# ./redis-server redis.conf        # Linux/Mac
 
-You'll see:
-```
-🎮 Simple Kahoot Server Starting
-Server: http://localhost:5000
-```
+# Terminal 3: Google STT Service
+# From any folder (uses PATH):
+run-google-stt
 
-### Step 3: Test the Nao Code (without robot)
-
-```bash
-# Terminal 2: Test Nao application
+# Terminal 4: NAO Robot
 cd "Game show host/nao"
-python nao_kahoot.py
+# Edit NAO_IP in main.py first!
+python main.py
 ```
 
-Debug output:
+### Step 4: Open Browser
+
+| URL | Purpose |
+|-----|---------|
+| http://localhost:5000/admin | Control quiz manually |
+| http://localhost:5000/quiz | Project on screen for audience |
+| http://localhost:5000/join | Players scan QR / join here |
+
+---
+
+## 🎯 System Architecture
+
 ```
-[API] Getting status...
-[NAO SAYS] Hello everyone! Welcome to the quiz!
+┌─────────────────────────────────────────────────────────────────────────┐
+│                              INPUT                                       │
+├─────────────────────────────────┬───────────────────────────────────────┤
+│        🎤 NAO Microphone        │           📱 Player Phones            │
+│         (cohost voice)          │            (answers)                  │
+└────────────────┬────────────────┴───────────────────┬───────────────────┘
+                 │                                    │
+                 ▼                                    ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                            PROCESSING                                    │
+├─────────────────────┬─────────────────────┬─────────────────────────────┤
+│    Google STT       │     Groq LLM        │      Flask Server           │
+│  (speech to text)   │   (joke generation) │    (quiz logic)             │
+└─────────┬───────────┴──────────┬──────────┴──────────────┬──────────────┘
+          │                      │                         │
+          ▼                      ▼                         ▼
+┌─────────────────────────────────────────────────────────────────────────┐
+│                              OUTPUT                                      │
+├─────────────────────┬─────────────────────┬─────────────────────────────┤
+│    NAO Speech       │     NAO LEDs        │      📺 Display             │
+│  (questions/jokes)  │   (red when angry)  │   (quiz interface)          │
+└─────────────────────┴─────────────────────┴─────────────────────────────┘
 ```
 
-✅ **Done!** The modules work together.
-### Step 4: Add Players (optional)
+### Module Responsibilities
 
-Open in your browser:
-- `http://localhost:5000/join`
+| Module | Responsibility |
+|--------|----------------|
+| **Kahoot-server** | Quiz state, player management, scoring, web interface |
+| **nao** | Robot control, joke generation, speech recognition, show flow |
 
-## 📚 Documentation Per Module
+### Communication Flow
 
-### Kahoot-server Module
+```
+┌─────────────┐          ┌─────────────────┐          ┌─────────────┐
+│   PLAYERS   │          │  KAHOOT SERVER  │          │  NAO ROBOT  │
+└──────┬──────┘          └────────┬────────┘          └──────┬──────┘
+       │                          │                          │
+       │  ══════════════ PHASE 1: SETUP ══════════════════  │
+       │                          │                          │
+       │─── POST /join (name) ───►│                          │
+       │◄── player_id ────────────│                          │
+       │                          │                          │
+       │  ══════════════ PHASE 2: QUIZ START ═════════════  │
+       │                          │                          │
+       │                          │◄─── POST /api/start ─────│
+       │                          │◄─── GET /api/status ─────│
+       │                          │──── question data ──────►│
+       │                          │                          │
+       │  ══════════════ PHASE 3: PER QUESTION ═══════════  │
+       │                          │                          │
+       │                          │              NAO speaks question
+       │                          │◄── POST /api/reveal ─────│
+       │─── POST /answer ────────►│                          │
+       │                          │◄── POST /api/show_ans ───│
+       │                          │─── correct/wrong list ──►│
+       │                          │                          │
+       │                          │         ┌────────────────┴───┐
+       │                          │         │ Generate joke      │
+       │                          │         │ via Groq LLM       │
+       │                          │         └────────────────┬───┘
+       │                          │                          │
+       │                          │              NAO speaks joke
+       │                          │                          │
+       │  ══════════════ PHASE 4: FINALE ═════════════════  │
+       │                          │                          │
+       │                          │◄─ GET /api/leaderboard ──│
+       │                          │─── final standings ─────►│
+       │                          │                          │
+       │                          │         NAO announces winner/loser
+       │                          │              with roasts
+       │                          │                          │
+       ▼                          ▼                          ▼
+```
 
-**Read**: `Kahoot-server/README.md`
-
-Contains:
-- Detailed API documentation
-- How to adjust questions (`quiz_data.py`)
-- Explanation of all endpoints
-- How to extend functionality
-
-### Nao Module
-
-**Read**: `nao/QUICKSTART.md`
-
-Contains:
-- Step-by-step instructions
-- Test mode (no Nao required)
-- How to connect to a real Nao
-- Code examples
+---
 
 ## 🔧 Configuration
 
 ### Server Configuration
-In `Kahoot-server/quiz_data.py`:
+
+Edit `Kahoot-server/data/quiz_data.py`:
+
 ```python
-QUIZ_TITLE = "Nao's Fun Quiz"
-QUESTIONS = [...]  # Edit questions here
+QUIZ_TITLE = "Your Quiz Title"
+QUESTIONS = [
+    {
+        "id": 0,
+        "text": "What is the capital of France?",
+        "options": ["Paris", "London", "Berlin", "Madrid"],
+        "correct_answer": 0
+    },
+    # Add more...
+]
 ```
 
-### Nao Configuration
-In \`nao/nao_kahoot.py\`:
-\`\`\`python
-SERVER_URL = "http://localhost:5000"  # Server address
-NAO_IP = "10.0.0.137"                  # Nao IP address
-TEST_API_ONLY = True                   # True = test without Nao
-\`\`\`
+### NAO Configuration
 
-### SIC Framework (Real Nao)
-If you want to work with a real Nao:
-1. Edit \`requirements.txt\`
-2. Uncomment the line: \`# social-interaction-cloud\`
-3. Run: \`pip install -r requirements.txt\`
+Edit `nao/main.py`:
 
-## 💡 Why Modular?
-
-### ✅ Advantages
-
-1. **Independent testing**
-   - Test server without Nao
-   - Test Nao code without the real robot
-
-2. **Easy to expand**
-   - Add server features without touching Nao code
-   - Add Nao behavior without modifying the server
-
-3. **Clear responsibilities**
-   - Server: Quiz logic and data
-   - Nao: Presentation and interaction
-
-4. **Learn and understand**
-   - Every module is small and readable
-   - Clear API boundaries
-
-## 📖 Code Structure Details
-
-### Project Root
-```
-Game show host/
-├── requirements.txt    # Central dependencies (use this!)
-├── README.md           # This file
-├── Kahoot-server/      # Server module
-└── nao/                # Nao module
+```python
+NAO_IP = "10.0.0.239"           # Your NAO's IP
+SERVER_URL = "http://localhost:5000"
+JOIN_WAIT_TIME = 60             # Wait time for players
 ```
 
-### Kahoot-server Files
-```
-Kahoot-server/
-├── app.py              # Flask server with all routes
-├── quiz_data.py        # Questions (EDIT HERE)
-├── templates/          # HTML for players
-│   ├── admin.html      # Admin dashboard
-│   ├── join.html       # Player join page
-│   └── play.html       # Quiz interface
-└── static/
-    └── css/
-        └── style.css   # Styling
-```
+### LLM Personality
 
-### Nao Files
-```
-nao/
-├── nao_kahoot.py       # Main Nao application
-└── QUICKSTART.md       # Detailed explanation
-```
-
-## 🎓 Usage Scenarios
-
-### Scenario 1: Development and Testing
-```bash
-# One-time: install dependencies
-cd "Game show host"
-pip install -r requirements.txt
-
-# Terminal 1: start server
-cd Kahoot-server
-python app.py
-
-# Terminal 2: test Nao (without robot)
-cd ../nao
-python nao_kahoot.py
-```
-
-### Scenario 2: Demo with Real Nao
-```bash
-# Terminal 1: start server
-cd Kahoot-server
-python app.py
-
-# Terminal 2: connect Nao
-cd ../nao
-# Edit nao_kahoot.py: TEST_API_ONLY = False
-python nao_kahoot.py
-```
-
-### Scenario 3: Add Players
-1. Start server (as above)
-2. Players: go to `http://localhost:5000/join`
-3. Admin view: go to `http://localhost:5000/admin`
-
-## 🧪 Test Checklist
-
-Follow these steps to test everything:
-
-- [ ] Install dependencies: `pip install -r requirements.txt`
-- [ ] Start server → see "Server Starting" message
-- [ ] Open `http://localhost:5000/admin` → admin dashboard appears
-- [ ] Open `http://localhost:5000/join` → add a player
-- [ ] Run `nao/nao_kahoot.py` → see debug output
-- [ ] Check that Nao reads questions
-- [ ] Check that players can answer
-
-## 🔨 Extending
-
-### Add New Questions
-1. Edit `Kahoot-server/quiz_data.py`
-2. Add a question to the `QUESTIONS` list
-3. Restart server
-
-### Modify Nao Behavior
-1. Edit `nao/nao_kahoot.py`
-2. Modify functions in the `NaoQuizMaster` class
-3. Run again
-
-### Add New API Endpoints
-1. Edit `Kahoot-server/app.py`
-2. Add a new route
-3. Update `nao/nao_kahoot.py` to use the endpoint
-
-## 🐛 Common Issues
-
-### Server won't start
-```bash
-# Check if port 5000 is already in use
-netstat -an | findstr :5000
-
-# Or use a different port in app.py:
-app.run(port=5001)
-```
-
-### Nao can't connect
-1. Check if the server is running
-2. Check `SERVER_URL` in `nao_kahoot.py`
-3. Try `TEST_API_ONLY = True` first
-
-### No players visible
-1. Check if you visited the `/join` page
-2. Check if you entered a name
-3. Check browser console for errors
-
-### Dependencies won't install
-```bash
-# Try installing separately
-pip install flask flask-cors qrcode[pil] requests
-
-# For Nao (only if needed):
-pip install social-interaction-cloud
-```
-
-## 📝 Best Practices
-
-### During Development
-- ✅ Always test first with `TEST_API_ONLY = True`
-- ✅ Use print statements to debug
-- ✅ Test with 1–2 players first
-- ✅ Commit often (small changes)
-
-### During Presentation
-- ✅ Test full flow beforehand
-- ✅ Check Nao’s battery
-- ✅ Check WiFi connection
-- ✅ Have a backup plan (TEST_API_ONLY mode)
-
-## 🎯 Next Steps
-
-1. **Learn the basics**
-   - Read `Kahoot-server/README.md`
-   - Read `nao/QUICKSTART.md`
-   - Run everything in test mode
-
-2. **Test with players**
-   - Add yourself as a player
-   - Observe the full flow
-   - Understand the interaction
-
-3. **Connect Nao**
-   - Set `TEST_API_ONLY = False`
-   - Test with the real robot
-   - Add jokes/gestures
-
-4. **Expand**
-   - More questions
-   - Nao gestures for correct/incorrect answers
-   - LED effects
-   - Scoring system
-
-## 📞 Need Help?
-
-### Error Messages
-- Check `[API]` prints → server communication issue
-- Check `[NAO]` prints → robot issue
-- Check browser console → player interface issue
-
-### Adjust Questions
-- Edit `Kahoot-server/quiz_data.py`
-- Follow existing format exactly
-
-### More Features
-- Add small changes, test, then add more
-- Use print statements everywhere
-- Keep functions small (<20 lines)
+Edit `nao/prompts.py` to customize NAO's humor style.
 
 ---
 
-**Good luck with your Nao quiz master!** 🤖🎮
+## 📋 Prerequisites
+
+| Requirement | Purpose |
+|-------------|---------|
+| Python 3.8+ | Runtime |
+| NAO robot | Quiz host hardware |
+| Same WiFi network | All devices connected |
+| Redis | SIC framework message broker |
+| Google Cloud credentials | Speech-to-text |
+| Groq API key | LLM joke generation |
+
+---
+
+## 🎬 Quiz Show Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                           QUIZ SHOW FLOW                                 │
+└─────────────────────────────────────────────────────────────────────────┘
+
+    ┌───────────┐
+    │   START   │
+    └─────┬─────┘
+          │
+          ▼
+    ┌───────────────────────────────────────────────────────────┐
+    │  PHASE 1: INTRO                                           │
+    │  • NAO wakes up and stands                                │
+    │  • Introduces himself with wave gesture                   │
+    │  • Roasts the cohost                                      │
+    │  • Listens to cohost response, makes comeback             │
+    └─────────────────────────┬─────────────────────────────────┘
+                              │
+                              ▼
+    ┌───────────────────────────────────────────────────────────┐
+    │  PHASE 2: WAIT FOR PLAYERS (60 seconds)                   │
+    │  • Points to screen, tells players to join                │
+    │  • Makes jokes about player usernames as they join        │
+    │  • Interacts with cohost at halfway point                 │
+    │  • Time announcements at 30s and 10s                      │
+    └─────────────────────────┬─────────────────────────────────┘
+                              │
+                              ▼
+    ┌───────────────────────────────────────────────────────────┐
+    │  PHASE 3: QUIZ LOOP (per question)                        │
+    │                                                           │
+    │    ┌──────────────┐                                       │
+    │    │ Read Question│◄──────────────────────────────┐       │
+    │    └──────┬───────┘                               │       │
+    │           ▼                                       │       │
+    │    ┌──────────────┐                               │       │
+    │    │Reveal Options│ (starts 20s timer)            │       │
+    │    └──────┬───────┘                               │       │
+    │           ▼                                       │       │
+    │    ┌──────────────┐                               │       │
+    │    │Wait Answers  │ (poll until timeout)          │       │
+    │    └──────┬───────┘                               │       │
+    │           ▼                                       │       │
+    │    ┌──────────────┐                               │       │
+    │    │Show Correct  │ + distribution                │       │
+    │    └──────┬───────┘                               │       │
+    │           ▼                                       │       │
+    │    ┌──────────────┐                               │       │
+    │    │ Make Joke    │ (LLM generates)               │       │
+    │    └──────┬───────┘                               │       │
+    │           ▼                                       │       │
+    │    ┌──────────────┐     More questions?           │       │
+    │    │ Leaderboard  │────────────────────YES────────┘       │
+    │    └──────┬───────┘                                       │
+    │           │ NO                                            │
+    └───────────┼───────────────────────────────────────────────┘
+                │
+                ▼
+    ┌───────────────────────────────────────────────────────────┐
+    │  PHASE 4: FINALE                                          │
+    │  • Build tension                                          │
+    │  • Announce WINNER + backhanded compliment joke           │
+    │  • Announce LOSER + gentle roast                          │
+    │  • Ask cohost for closing words                           │
+    │  • NAO bows and closes the show                           │
+    └─────────────────────────┬─────────────────────────────────┘
+                              │
+                              ▼
+                        ┌───────────┐
+                        │    END    │
+                        └───────────┘
+```
+
+### Phase Details
+
+| Phase | NAO Actions | Server Actions |
+|-------|-------------|----------------|
+| **Intro** | Introduces self, roasts cohost | - |
+| **Wait** | Jokes about player names | Accepts joins |
+| **Quiz** | Reads questions, makes jokes | Tracks answers, scores |
+| **Finale** | Announces winner/loser with roasts | Provides final standings |
+
+---
+
+## 🧪 Testing
+
+### Test Server Only
+
+```bash
+cd "Game show host/Kahoot-server"
+python app.py
+# Open http://localhost:5000/admin
+```
+
+### Test NAO API Connection
+
+```bash
+cd "Game show host/nao"
+python api/kahoot_api.py
+```
+
+### Test Full System
+
+1. Start server (`Kahoot-server/`) → Terminal 1
+2. Start Redis (`conf/redis/`) → Terminal 2
+3. Start `run-google-stt` → Terminal 3
+4. Start NAO script (`nao/`) → Terminal 4
+5. Open `/admin` and `/quiz` in browser
+6. Join as player via `/join`
+7. Watch the show!
+
+---
+
+## 🐛 Common Issues
+
+| Problem | Solution |
+|---------|----------|
+| Server won't start | Check port 5000 is free |
+| NAO won't connect | Verify IP, check same network |
+| SIC services fail | Ensure `redis-server` is running first |
+| STT not working | Ensure `run-google-stt` is running |
+| No jokes generated | Check `.env` has valid `GROQ_API_KEY` |
+| Players can't join | Use network IP, not localhost |
+
+See module-specific READMEs for detailed troubleshooting.
+
+---
+
+## 📚 Module Documentation
+
+| Module | README | Focus |
+|--------|--------|-------|
+| **Kahoot-server** | [Kahoot-server/README.md](Kahoot-server/README.md) | API reference, quiz configuration, web interface |
+| **nao** | [nao/README.md](nao/README.md) | Robot setup, LLM prompts, speech recognition |
+
+---
+
+## 🎓 For Developers
+
+### Adding New Features
+
+1. **New quiz questions** → Edit `Kahoot-server/data/quiz_data.py`
+2. **New joke types** → Edit `nao/prompts.py`
+3. **New API endpoints** → Edit `Kahoot-server/routes/`
+4. **New robot behaviors** → Edit `nao/robot/show_controller.py`
+
+### Code Style
+
+- Functions < 20 lines
+- Lots of comments
+- Print statements for debugging
+- Test incrementally
+
+---
+
+## 📦 Dependencies
+
+Install from project root:
+
+```bash
+pip install -r requirements.txt
+pip install "social-interaction-cloud[google-stt]"
+```
+
+---
+
+**Good luck with your NAO Quiz Show!** 🤖🎮

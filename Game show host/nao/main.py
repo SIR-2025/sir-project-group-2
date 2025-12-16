@@ -26,10 +26,10 @@ from sic_framework.devices.common_naoqi.naoqi_autonomous import (
 )
 
 # Local imports
-from server_connection import KahootAPI
-from nao_listener import NaoListener
-from llm_integration_groq import stream_llm_response_to_nao
-from mic import NaoShowController
+from api.kahoot_api import KahootAPI
+from speech.listener import NaoListener
+from speech.llm import stream_llm_response_to_nao
+from robot.show_controller import NaoShowController
 from prompts import (
     PROMPT_PLAYER_NAMES,
     PROMPT_WRONG_ANSWER,

@@ -1,98 +1,101 @@
 # Kahoot Server
 
-Interactive quiz application inspired by Kahoot, designed for NAO robot control.
+Flask web server for the NAO Quiz Show. Manages quiz state, players, and scoring.
 
-## Features
+> 📖 For full project setup, see the [main README](../README.md).
 
-- Real-time multiplayer quiz game
-- Kahoot-style speed-based scoring (500-1000 points)
-- QR code generation for easy player joining
-- Admin dashboard for manual control
-- Host display for projector/TV
-- RESTful API for NAO robot integration
-- Leaderboard with rank tracking
+---
 
-## Project Structure
-
-```
-Kahoot-server/
-├── app.py                      # Application entry point
-├── routes/                     # HTTP endpoints
-│   ├── web.py                  # HTML pages (admin, join, play, quiz)
-│   ├── api_player.py           # Player API (join, answer, status)
-│   └── api_nao.py              # NAO robot API (quiz control)
-├── core/                       # Business logic
-│   ├── state.py                # Global state management
-│   ├── scoring.py              # Score calculation
-│   └── helpers.py              # Utilities (QR code, IP detection)
-├── data/                       # Configuration
-│   └── quiz_data.py            # Quiz questions and title
-├── templates/                  # HTML templates
-└── static/css/                 # Stylesheets
-```
-
-## Installation
+## Quick Start
 
 ```bash
-pip install flask flask-cors qrcode pillow
-```
-
-## Usage
-
-### Start Server
-
-```bash
+cd "Game show host/Kahoot-server"
+pip install flask flask-cors qrcode[pil]
 python app.py
 ```
 
-Server runs on port 5000. Access points:
-- **Admin**: `http://localhost:5000/admin`
-- **Player Join**: `http://localhost:5000/join`
-- **Host Display**: `http://localhost:5000/quiz`
+Open http://localhost:5000/admin in your browser.
 
-### Quiz Flow
+---
 
-1. Players join via QR code or join page
-2. NAO/Admin starts quiz: `POST /api/start`
-3. For each question:
-   - Show question: phase automatically set to `PHASE_QUESTION`
-   - Reveal options: `POST /api/reveal_options` (starts 20s timer)
-   - Players submit answers via mobile interface
-   - Show results: `POST /api/show_answers` (calculates scores)
-   - Show leaderboard: `POST /api/show_leaderboard`
-   - Next question: `POST /api/next`
-4. Quiz ends after last question
+## Web Pages
 
-## API Endpoints
+| URL | Purpose |
+|-----|---------|
+| `/admin` | Control quiz flow, see player count |
+| `/quiz` | Host display for projector/TV |
+| `/join` | QR code + player name entry |
+| `/play` | Player answer interface (mobile) |
 
-### Player API (`/api/player`)
+---
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/join` | Join quiz, returns `player_id` |
-| POST | `/answer` | Submit answer (requires `player_id`, `answer` 0-3) |
-| GET | `/status?player_id=X` | Poll for quiz state updates |
+## Architecture
+
+```
+Kahoot-server/
+├── app.py                 # Flask entry point
+├── routes/
+│   ├── web.py             # HTML pages
+│   ├── api_player.py      # Player endpoints (/api/player/*)
+│   └── api_nao.py         # NAO endpoints (/api/*)
+├── core/
+│   ├── state.py           # In-memory quiz state
+│   ├── scoring.py         # Points calculation
+│   └── helpers.py         # QR code, IP detection
+├── data/
+│   └── quiz_data.py       # Questions (EDIT HERE)
+├── templates/             # HTML (Jinja2)
+└── static/css/            # Styling
+```
+
+---
+
+## API Reference
 
 ### NAO Robot API (`/api`)
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/status` | Complete quiz status |
+| GET | `/status` | Quiz state, current question, player count |
 | GET | `/players` | List of player names |
 | POST | `/start` | Start quiz at question 0 |
-| POST | `/reveal_options` | Show options and start timer |
-| POST | `/show_answers` | Calculate scores, show distribution |
-| POST | `/show_leaderboard` | Display top 10 with rank changes |
-| GET | `/leaderboard` | Get leaderboard data |
-| POST | `/next` | Move to next question or finish |
-| GET | `/results` | Get answer distribution |
-| POST | `/reset` | Reset entire quiz |
+| POST | `/reveal_options` | Show options, start 20s timer |
+| POST | `/show_answers` | Calculate scores, reveal correct answer |
+| POST | `/show_leaderboard` | Show top 10 with rank changes |
+| GET | `/leaderboard` | Get leaderboard (no phase change) |
+| POST | `/next` | Move to next question |
+| GET | `/results` | Answer distribution for current question |
+| POST | `/reset` | Reset quiz to initial state |
 
-## Configuration
+### Player API (`/api/player`)
 
-### Edit Quiz Questions
+| Method | Endpoint | Body | Description |
+|--------|----------|------|-------------|
+| POST | `/join` | `{"name": "..."}` | Join quiz, returns `player_id` |
+| POST | `/answer` | `{"player_id": "...", "answer": 0}` | Submit answer (0-3) |
+| GET | `/status?player_id=X` | - | Poll for quiz state |
 
-Edit [data/quiz_data.py](data/quiz_data.py):
+### Example Response: `/api/show_answers`
+
+```json
+{
+  "success": true,
+  "distribution": [5, 2, 8, 1],
+  "correct_answer": 2,
+  "correct_answer_letter": "C",
+  "correct_answer_text": "Amsterdam",
+  "correct_players": ["Alice", "Bob"],
+  "wrong_players": ["Charlie"]
+}
+```
+
+---
+
+## Quiz Configuration
+
+### Edit Questions
+
+Edit `data/quiz_data.py`:
 
 ```python
 QUIZ_TITLE = "Your Quiz Title"
@@ -100,40 +103,106 @@ QUIZ_TITLE = "Your Quiz Title"
 QUESTIONS = [
     {
         "id": 0,
-        "text": "Your question?",
-        "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
-        "correct_answer": 0  # Index 0-3
+        "text": "What is the capital of the Netherlands?",
+        "options": ["Amsterdam", "Rotterdam", "The Hague", "Utrecht"],
+        "correct_answer": 0  # A=0, B=1, C=2, D=3
     },
     # Add more questions...
 ]
 ```
 
+**Rules**:
+- Each question needs: `id`, `text`, `options` (exactly 4), `correct_answer`
+- `correct_answer` must be 0, 1, 2, or 3
+- Server validates on startup
+
 ### Scoring System
 
-- **Correct answer**: 500-1000 points (faster = more points)
-- **Incorrect answer**: 0 points
-- **Max time**: 20 seconds
+| Speed | Points |
+|-------|--------|
+| Fast (0-5s) | ~1000 |
+| Medium (5-15s) | ~750 |
+| Slow (15-20s) | ~500 |
+| Wrong | 0 |
 
-Formula: Faster answers get up to 1000 points, slower answers get minimum 500 points.
+---
 
 ## Quiz Phases
 
-1. `PHASE_WAITING` - Before quiz starts
-2. `PHASE_QUESTION` - Question displayed (options hidden)
-3. `PHASE_ANSWERING` - Options revealed, timer running
-4. `PHASE_RESULTS` - Answer distribution shown
-5. `PHASE_LEADERBOARD` - Top 10 players displayed
+| Phase | Description |
+|-------|-------------|
+| `waiting` | Players can join, quiz not started |
+| `question` | Question displayed, options hidden |
+| `answering` | Options visible, 20s timer running |
+| `results` | Correct answer + distribution shown |
+| `leaderboard` | Top 10 with rank changes |
+| `finished` | Quiz complete |
+
+---
 
 ## State Management
 
-All quiz state is in-memory (resets on server restart):
-- Player data (names, answers, scores)
-- Current question and phase
-- Answer submissions with timestamps
-- Rankings and rank changes
+All state is **in-memory** (resets on server restart):
 
-No database required.
+```python
+quiz_state = {
+    "players": {},           # player_id -> {name, answers}
+    "player_scores": {},     # player_id -> total score
+    "current_answers": {},   # player_id -> current answer
+    "phase": "waiting",
+    "current_question": 0,
+    "is_active": False
+}
+```
+
+---
+
+## Testing
+
+### Verify Server Running
+
+```bash
+curl http://localhost:5000/api/status
+```
+
+### Simulate Player Join
+
+```bash
+curl -X POST http://localhost:5000/api/player/join \
+  -H "Content-Type: application/json" \
+  -d '{"name": "TestPlayer"}'
+```
+
+### Manual Test Flow
+
+1. Open `/admin` in browser
+2. Open `/join` in second tab, enter name
+3. Click "Start Quiz" in admin
+4. Click "Reveal Options"
+5. Answer in player tab
+6. Click "Show Answers"
+7. Verify score appears
+
+---
+
+## Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| Port 5000 in use | Change port in `app.py`: `app.run(port=5001)` |
+| Players can't join | Use network IP, ensure same WiFi |
+| QR code not working | Type URL manually |
+| Answers not registering | Click "Reveal Options" first |
+| Scores not updating | Click "Show Answers" to calculate |
+
+---
 
 ## Network Access
 
-Players join from mobile devices on the same network. Server displays local IP on startup.
+Players join from mobile devices:
+
+1. Server shows local IP on startup
+2. QR code on `/join` encodes this URL
+3. All devices must be on same WiFi
+
+**Note**: `localhost` only works on the same machine.

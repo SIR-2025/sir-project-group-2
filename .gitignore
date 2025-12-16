@@ -27,16 +27,9 @@ build
 # Ignore dialogflow keyfiles
 conf/dialogflow/*.json
 
-
+# Secrets
 .env
 conf/google/google-key.json
 
-# secrets
-conf/google/google-key.json
-.env
-conf/google/google-key.json
-.env
-
-# secrets
-conf/google/google-key.json
-.env
+# Virtual environment
+venv_sic/

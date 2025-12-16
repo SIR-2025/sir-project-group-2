@@ -1,62 +1,20 @@
-# =============================================================================
-# Requirements for NAO Quiz Host Project
-# =============================================================================
-# This file covers dependencies for BOTH:
-# - nao/         (NAO robot control + speech + LLM)
-# - Kahoot-server/  (Flask web server for quiz)
-#
-# Installation:
-#   1. Create virtual environment: python -m venv venv
-#   2. Activate: venv\Scripts\activate  (Windows) or source venv/bin/activate (Linux/Mac)
-#   3. Install: pip install -r requirements.txt
-#
-# Note: sic_framework may need separate installation from your university repository
-# =============================================================================
-
-# -----------------------------------------------------------------------------
 # Flask Web Server (Kahoot-server)
-# -----------------------------------------------------------------------------
 flask>=2.0.0
 flask-cors>=3.0.0
-qrcode[pil]>=7.0.0           # For QR code generation (includes Pillow)
+qrcode[pil]>=7.0.0
 
-# -----------------------------------------------------------------------------
-# NAO Robot Control
-# -----------------------------------------------------------------------------
-# SIC Framework - Install from your university repository:
-# pip install social-interaction-cloud
-# OR from git:
-# pip install git+https://github.com/socialroboticshub/sic_framework.git
-#
-# If sic_framework is available on PyPI:
-# social-interaction-cloud
+# LLM Integration
+groq>=0.4.0
 
-# NAOqi Python SDK (pynaoqi) - Download from SoftBank Robotics
-# This is platform-specific and must be installed manually
-# See: https://developer.softbankrobotics.com/
-
-# -----------------------------------------------------------------------------
-# Speech Recognition & Processing
-# -----------------------------------------------------------------------------
-SpeechRecognition>=3.8.0     # For microphone input (nao_kahoot.py)
-
-# -----------------------------------------------------------------------------
-# LLM Integration (OpenAI & Groq)
-# -----------------------------------------------------------------------------
-openai>=1.0.0                # OpenAI API client
-groq>=0.4.0                  # Groq API client (faster inference)
-
-# -----------------------------------------------------------------------------
 # Utilities
-# -----------------------------------------------------------------------------
-python-dotenv>=0.19.0        # For loading .env files with API keys
-requests>=2.25.0             # HTTP requests to Flask server
+python-dotenv>=0.19.0
+requests>=2.25.0
 
 # -----------------------------------------------------------------------------
-# Optional: Development Tools
+# MANUAL INSTALLATION REQUIRED (not via pip install -r):
 # -----------------------------------------------------------------------------
-# Uncomment these if needed:
-# pytest>=7.0.0              # Testing
-# black>=22.0.0              # Code formatting
-# flake8>=4.0.0              # Linting
-
+# 1. SIC Framework + Google STT:
+#    pip install "social-interaction-cloud[google-stt]"
+#
+# 2. NAOqi SDK (qi module):
+#    Download from SoftBank Robotics website
